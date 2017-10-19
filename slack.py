@@ -36,19 +36,8 @@ def _make_attachments(changes):
     for change in changes:
         attach = {
             'color': change.color,
-            'author_name': '{c.author}: {c.subject}'.format(c=change),
+            'author_name': 'CR: {c.code_review} V: {c.verified} - {c.author}: {c.subject}'.format(c=change),
             'author_link': change.url,
-            'mrkdwn_in': ['fields'],
-            'fields': [
-                {
-                    'value': 'Code-Review: {.code_review}'.format(change),
-                    'short': True,
-                },
-                {
-                    'value': 'Verified: {.verified}'.format(change),
-                    'short': True,
-                }
-            ]
         }
         attachments.append(attach)
 
