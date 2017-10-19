@@ -64,8 +64,13 @@ class Change:
 
     @property
     def verified(self):
-        verified = "approved" in self._change['labels']["Verified"]
-        return self.VERIFIED if verified else self.FAILED
+        ver = self._change['labels']["Verified"]
+        if not ver:
+            return ''
+        elif 'approved' in ver:
+            return self.VERIFIED
+        else:
+            return self.FAILED
 
     @property
     def color(self):
