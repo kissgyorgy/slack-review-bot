@@ -28,7 +28,7 @@ def post(changes):
         'attachments': _make_attachments(changes),
     }
     print('Payload:', payload, flush=True)
-    requests.post(os.environ['SLACK_WEBHOOK_URL'], json=payload)
+    return requests.post(os.environ['SLACK_WEBHOOK_URL'], json=payload)
 
 
 def _make_attachments(changes):
