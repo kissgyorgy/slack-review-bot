@@ -1,4 +1,5 @@
 import os
+import textwrap
 import requests
 
 
@@ -36,9 +37,16 @@ def _make_attachments(changes):
     for change in changes:
         attach = {
             'color': change.color,
-            'author_name': 'CR: {c.code_review} V: {c.verified} - {c.author}: {c.subject}'.format(c=change),
+            'author_name': _make_message(change),
             'author_link': change.url,
         }
         attachments.append(attach)
 
     return attachments
+
+
+def _make_message(change):
+    text = 'CR: {c.code_review} V: {c.verified} - {c.author}: {c.subject}'.format(c=change)
+    # Slack wraps lines around 90 width, so if we cut out here explicitly,
+    # every patch will fit in one line
+    return textwrap.shorten(text, width=90, placeholder=' ...')
