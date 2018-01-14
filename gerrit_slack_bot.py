@@ -13,7 +13,8 @@ def get_changes_and_submit_to_slack():
 
 def main():
     res = get_changes_and_submit_to_slack()
-    if res is None or not res.ok:
+    if res is not None and not res.ok:
+        print(res.status_code, 'error:', res.text, file=sys.stderr)
         return 1
     return 0
 
