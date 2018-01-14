@@ -1,6 +1,7 @@
 import os
 import textwrap
 import requests
+import gerrit
 
 
 PLUS_ONE = ':+1:'
@@ -25,7 +26,7 @@ def escape(text):
 def post(changes):
     payload = {
         'channel': os.environ['CHANNEL'],
-        'text': '{} patch vár review-ra:'.format(len(changes)),
+        'text': '<{}|{} patch vár review-ra:>'.format(gerrit.CHANGES_URL, len(changes)),
         'attachments': _make_attachments(changes),
     }
     print('Payload:', payload, flush=True)

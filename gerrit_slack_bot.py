@@ -6,7 +6,7 @@ import gerrit
 
 
 def get_changes_and_submit_to_slack():
-    gerrit_change_list = gerrit.get(gerrit.CHANGES_URL)
+    gerrit_change_list = gerrit.get(gerrit.CHANGES_API_URL)
     gerrit_changes = [gerrit.Change(c) for c in gerrit_change_list]
     return slack.post(gerrit_changes) if gerrit_changes else None
 

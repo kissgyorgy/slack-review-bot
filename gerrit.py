@@ -11,7 +11,8 @@ GERRIT_URL = 'https://review.balabit'
 # https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#detailed-accounts
 CHANGES_ENDPOINT = GERRIT_URL + '/changes/?o=LABELS&o=DETAILED_ACCOUNTS&q='
 ACCOUNTS_ENDPOINT = GERRIT_URL + '/accounts'
-CHANGES_URL = CHANGES_ENDPOINT + os.environ['QUERY']
+CHANGES_API_URL = CHANGES_ENDPOINT + os.environ['QUERY']
+CHANGES_URL = GERRIT_URL + '/#/q/' + os.environ['QUERY']
 
 
 class Change:
