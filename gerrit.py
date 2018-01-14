@@ -47,7 +47,7 @@ class Change:
 
     @property
     def author(self):
-        return self._change['owner']['name']
+        return self._change['owner']['username']
 
     @property
     def code_review(self):
