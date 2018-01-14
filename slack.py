@@ -1,7 +1,4 @@
-import os
-import textwrap
 import requests
-import gerrit
 
 
 PLUS_ONE = ':+1:'
@@ -23,30 +20,19 @@ def escape(text):
     return escaped
 
 
-def post(changes):
-    payload = {
-        'channel': os.environ['CHANNEL'],
-        'text': '<{}|{} patch vár review-ra:>'.format(gerrit.CHANGES_URL, len(changes)),
-        'attachments': _make_attachments(changes),
-    }
-    print('Payload:', payload, flush=True)
-    return requests.post(os.environ['SLACK_WEBHOOK_URL'], json=payload)
+class SlackClient:
+    def __init__(self, webhook_url, channel):
+        self._webhook_url = webhook_url
+        self._channel = channel
+
+    def post(self, text, attachments):
+        payload = {'channel': self._channel, 'text': text, 'attachments': attachments}
+        return requests.post(self._webhook_url, json=payload)
 
 
-def _make_attachments(changes):
-    attachments = []
-    for change in changes:
-        attachments.append({
-            'color': change.color,
-            'author_name': _make_message(change),
-            'author_link': change.url,
-        })
-
-    return attachments
+def make_link(url, text):
+    return '<{}|{}>'.format(url, text)
 
 
-def _make_message(change):
-    text = 'CR: {c.code_review} V: {c.verified} - {c.author}: {c.subject}'.format(c=change)
-    # Slack wraps lines around 80? width, so if we cut out here explicitly,
-    # every patch will fit in one line
-    return textwrap.shorten(text, width=80, placeholder=' …')
+def make_attachment(color, author_name, author_link):
+    return {'color': color, 'author_name': author_name, 'author_link': author_link}
