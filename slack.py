@@ -36,12 +36,11 @@ def post(changes):
 def _make_attachments(changes):
     attachments = []
     for change in changes:
-        attach = {
+        attachments.append({
             'color': change.color,
             'author_name': _make_message(change),
             'author_link': change.url,
-        }
-        attachments.append(attach)
+        })
 
     return attachments
 
