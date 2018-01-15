@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+
+{% block content %}
+
+  <div class="row">
+    <div class="col-12">
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">Slack #channel</th>
+            <th scope="col">Gerrit query</th>
+            <th scope="col">time spec</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>#scb-best</td>
+            <td><pre>ownerin:scb-best+AND+status:open+AND+NOT+label:Code-Review=2</pre></td>
+            <td><pre>Mon-Fri *-*-* 9,10,11,12,13,14,15,16,17,18:00</pre></td>
+          </tr>
+          <tr>
+            <td>#platform</td>
+            <td>Thornton</td>
+            <td>@fat</td>
+          </tr>
+          <tr>
+            <td>#paa</td>
+            <td>the Bird</td>
+            <td>@twitter</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12 text-right">
+      <button type="button" class="btn btn-warning">Újratöltés</button>
+    </div>
+  </div>
+
+{% endblock content %}
