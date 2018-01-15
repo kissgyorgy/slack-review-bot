@@ -23,9 +23,9 @@ class ChangeConfig:
     VERIFIED = slack.WHITE_CHECK_MARK
     FAILED = slack.X
 
-    GREEN = '#36a64f'
-    YELLOW = '#DBF32D'
-    RED = '#EC1313'
+    PLUS_TWO_COLOR = '#36a64f'
+    PLUS_ONE_COLOR = '#DBF32D'
+    NO_PLUS_COLOR = '#EC1313'
 
 
 class SlackConfig:

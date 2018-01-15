@@ -74,7 +74,8 @@ class Change:
     @property
     def color(self):
         if self.code_review == self._config.PLUS_TWO:
-            return self._config.GREEN
+            return self._config.PLUS_TWO_COLOR
         elif self.code_review == self._config.PLUS_ONE and self.verified == self._config.VERIFIED:
-            return self._config.YELLOW
-        return self._config.RED
+            return self._config.PLUS_ONE_COLOR
+        else:
+            return self._config.NO_PLUS_COLOR
