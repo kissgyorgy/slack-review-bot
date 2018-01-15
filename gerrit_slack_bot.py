@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.6
 
 import os
 import sys
@@ -52,7 +52,7 @@ def main(change_config, slack_config):
 
 def _make_summary(change_config, gerrit_changes):
     gerrit_changes_url = gerrit.make_changes_url(change_config)
-    link_text = '{} patch vár review-ra:'.format(len(gerrit_changes))
+    link_text = f'{len(gerrit_changes)} patch vár review-ra:'
     return slack.make_link(gerrit_changes_url, link_text)
 
 

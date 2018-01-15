@@ -7,7 +7,7 @@ def get_changes(config):
     # https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#detailed-labels
     # for owner name, DETAILED_ACCOUNTS:
     # https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#detailed-accounts
-    changes_api_url = config.GERRIT_URL + '/changes/?o=LABELS&o=DETAILED_ACCOUNTS&q=' + config.QUERY
+    changes_api_url =  f'{config.GERRIT_URL}/changes/?o=LABELS&o=DETAILED_ACCOUNTS&q={config.QUERY}'
     gerrit_change_list = get(changes_api_url)
     return [Change(config, c) for c in gerrit_change_list]
 
@@ -21,7 +21,7 @@ def get(url):
 
 
 def make_changes_url(config):
-    return config.GERRIT_URL + '/#/q/' + config.QUERY
+    return f'{config.GERRIT_URL}/#/q/{config.QUERY}'
 
 
 class Change:
@@ -36,7 +36,7 @@ class Change:
 
     @property
     def url(self):
-        return '{}/{}'.format(self._config.GERRIT_URL, self._change['_number'])
+        return f'{self._config.GERRIT_URL}/{self._change['_number']}'
 
     @property
     def subject_url(self):

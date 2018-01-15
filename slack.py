@@ -31,7 +31,7 @@ class SlackClient:
 
 
 def make_link(url, text):
-    return '<{}|{}>'.format(url, text)
+    return f'<{url}|{text}>'
 
 
 def make_attachment(color, author_name, author_link):
