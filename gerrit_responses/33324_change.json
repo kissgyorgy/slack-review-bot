@@ -1,0 +1,20 @@
+{
+  "id": "scb%2Fscb-master~master~Ib595116d35602a386c451a0289e73afb19ad2c6a",
+  "project": "scb/scb-master",
+  "branch": "master",
+  "topic": "miki",
+  "hashtags": [],
+  "change_id": "Ib595116d35602a386c451a0289e73afb19ad2c6a",
+  "subject": "tests/zts/ZTS: set default timeout for responses",
+  "status": "NEW",
+  "created": "2017-10-18 14:11:44.967000000",
+  "updated": "2017-10-18 15:19:02.985000000",
+  "mergeable": true,
+  "submittable": false,
+  "insertions": 2,
+  "deletions": 0,
+  "_number": 33324,
+  "owner": {
+    "_account_id": 1000085
+  }
+}

@@ -1,0 +1,15 @@
+{
+    "ok": true,
+    "access_token": "xoxp-3272405144-168473403429-265934894327-9593d3ef28fd3975ecd17e6ad58c6e93",
+    "scope": "identify,incoming-webhook",
+    "user_id": "U4YDXBVCM",
+    "team_name": "Balabit",
+    "team_id": "T0380BX48",
+    "incoming_webhook":
+    {
+        "channel": "@walkman",
+        "channel_id": "D4XKXN9CG",
+        "configuration_url": "https://balabit.slack.com/services/B8V89DE4Q",
+        "url": "https://hooks.slack.com/services/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"
+    }
+}
