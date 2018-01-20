@@ -1,0 +1,6 @@
+{
+    "timespec": "Mon-Fri *-*-* 9,10,11,12,13,14,15,16,17,18:00",
+    "channel": "#platform",
+    "gerrit_query": "ownerin:scb-best+AND+status:open+AND+NOT+label:Code-Review=2",
+    "slack_webhook_url": "https://hooks.slack.com/services/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"
+}

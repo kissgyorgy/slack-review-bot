@@ -1,0 +1,8 @@
+[Unit]
+Description=Download gerrit changes and post status to Slack channel
+
+[Timer]
+OnCalendar=Mon-Fri *-*-* 9,10,11,12,13,14,15,16,17,18:00
+
+[Install]
+WantedBy=timers.target
