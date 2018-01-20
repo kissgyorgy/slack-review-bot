@@ -1,0 +1,20 @@
+{
+    "crontab": "*/3 * * * *",
+    "gerrit": {
+        "query": "ownerin:scb-best+AND+status:open+AND+NOT+label:Code-Review=2"
+    },
+    "slack": {
+        "ok": true,
+        "access_token": "xoxp-5468755479-168473403429-57413547895-9593d3ef28fd3975ecd17e6ad58c6e93",
+        "scope": "identify,incoming-webhook",
+        "user_id": "U4YDXBKCJ",
+        "team_name": "Balabit",
+        "team_id": "T0380BX99",
+        "incoming_webhook": {
+            "channel": "@valaki",
+            "channel_id": "D4XKXN8AG",
+            "configuration_url": "https://balabit.slack.com/services/B9V99DF4Q",
+            "url": "https://hooks.slack.com/services/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"
+        }
+    }
+}
