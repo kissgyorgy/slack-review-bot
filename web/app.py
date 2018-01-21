@@ -1,24 +1,50 @@
-import datetime as dt
-import uwsgi
-from uwsgidecorators import filemon
-from flask import Flask, request, render_template, redirect, url_for
+import os
+import secrets
+# import uwsgi
+from flask import Flask, request, session, render_template, redirect, url_for, flash, g
+from cronjob import init_crontabs
+import slack
+from db import Database
+
+
+class Alert:
+    PRIMARY = 'primary'
+    SECONDARY = 'secondary'
+    SUCCESS = 'success'
+    DANGER = 'danger'
+    WARNING = 'warning'
+    INFO = 'info'
+    LIGHT = 'light'
+    DARK = 'dark'
 
 
 app = Flask(__name__)
-START_SIGNUM = 99
+app.secret_key = os.environ['SECRET_KEY']
+
+
+@app.before_request
+def before_request():
+    g.db = Database()
 
 
 @app.route('/')
 def index():
-    if request.method == 'GET':
-        return render_template('index.html')
+    config = g.db.load_config()
+    crontabs = init_crontabs(config)
 
+    # if the state is different we got from oauth authorization, we should refuse the token, because
+    # probably a third-party generated it. For details, see https://api.slack.com/docs/slack-button
+    session['oauth_state'] = secrets.token_urlsafe(32)
 
-@app.route('/reload')
-def reload():
-    uwsgi.reload()
-    print("Reloaded")
-    return redirect(url_for('index'))
+    if 'webhook_data' in session:
+        has_unfinished_config = True
+        unfinished_channel = session['webhook_data']['incoming_webhook']['channel']
+    else:
+        has_unfinished_config = False
+        unfinished_channel = None
+
+    return render_template('index.html', config=config, crontabs=crontabs, oauth_state=session['oauth_state'],
+                           has_unfinished_config=has_unfinished_config, unfinished_channel=unfinished_channel)
 
 
 @app.route('/edit')
@@ -26,29 +52,40 @@ def edit():
     return render_template('edit.html')
 
 
-# uwsgi.add_cron(signal, minute, hour, day, month, weekday)
-def uwsgi_main():
-    def print_ran(signum):
-        print("RAN at", dt.datetime.now())
-    uwsgi.register_signal(START_SIGNUM, "", print_ran)
-    uwsgi.add_cron(START_SIGNUM, -1, -1, -1, -1, -1)
-    print("UWSGI STarted")
-
-    filemon("web/templates/index.html")(tmp_has_been_modified)
-    filemon("web/templates/edit.html")(tmp_has_been_modified)
+@app.route('/new', methods=['GET'])
+def new():
+    return render_template('new.html', channel=session['webhook_data']['incoming_webhook']['channel'])
 
 
-def tmp_has_been_modified(num):
-    print("web/ directory has been modified. Reloading")
-    uwsgi.reload()
+@app.route('/delete-unfinished', methods=['POST'])
+def delete_unfinished():
+    res = slack.revoke_token(session['webhook_data']['access_token'])
+    if not res.ok or not res.json()['ok']:
+        flash('Unknown error revoking access token!', Alert.DANGER)
+        redirect('/')
+
+    channel = session['webhook_data']['incoming_webhook']['channel']
+    session.clear()
+    flash(f'Deleted unfinished request for {channel}, you can add a new channel now.', Alert.WARNING)
+    return redirect('/')
 
 
-def main():
-    app.run()
+@app.route('/slack-oauth')
+def slack_oauth():
+    # If the states don't match, the request has been created by a third party and the process should be aborted.
+    # See https://api.slack.com/docs/slack-button
+    if request.args['state'] != session['oauth_state']:
+        return 'Invalid state. You have been logged and will be caught.'
 
+    error = request.args.get('error')
+    if error == 'access_denied':
+        flash('Access denied - Request cancelled', Alert.WARNING)
+        return redirect('/')
+    elif error is not None:
+        flash('Unknown error - try again', Alert.DANGER)
+        return redirect('/')
 
-if __name__.startswith('uwsgi_file'):
-    uwsgi_main()
+    webhook_data = slack.request_oauth_token(request.args['code'])
+    session['webhook_data'] = webhook_data
 
-elif __name__ == '__main__':
-    main()
+    return redirect(url_for('new'))

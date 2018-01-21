@@ -1,3 +1,4 @@
+import os
 import requests
 
 
@@ -8,6 +9,9 @@ EXCLAMATION = ':exclamation:'
 
 WHITE_CHECK_MARK = ':white_check_mark:'
 X = ':x:'
+
+
+SLACK_API_URL = 'https://slack.com/api'
 
 
 def escape(text):
@@ -36,3 +40,18 @@ def make_link(url, text):
 
 def make_attachment(color, author_name, author_link):
     return {'color': color, 'author_name': author_name, 'author_link': author_link}
+
+
+def request_oauth_token(code):
+    # documentation: https://api.slack.com/methods/oauth.access
+    res = requests.post(SLACK_API_URL + '/oauth.access', {
+        'client_id': os.environ['SLACK_CLIENT_ID'],
+        'client_secret': os.environ['SLACK_CLIENT_SECRET'],
+        'code': code,
+    })
+    # example in slack_messages/oauth.access.json
+    return res.json()
+
+
+def revoke_token(token):
+    return requests.post(SLACK_API_URL + '/auth.revoke', {'token': token})
