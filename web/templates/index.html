@@ -7,8 +7,7 @@
       {% if has_unfinished_config %}
         <form action="{{ url_for('delete_unfinished') }}" method="post" class="form-inline">
           <a href="{{ url_for('new') }}" class="btn btn-primary">Finish adding {{ unfinished_channel }} </a>
-          or you can
-          <button type="submit" class="btn btn-danger">Delete</button> it.
+          or you can <button type="submit" class="btn btn-danger">Delete</button> it.
         </form>
       {% else %}
         <a href="https://slack.com/oauth/authorize?scope=incoming-webhook&client_id=3272405144.260489313078&state={{ oauth_state }}">
@@ -30,11 +29,11 @@
           </tr>
         </thead>
         <tbody>
-          {% for channel, conf in config.items() %}
+          {% for channel, gerrit_query, crontab in config %}
             <tr>
               <td>{{ channel }}</td>
-              <td><pre>{{ conf.gerrit.query }}</pre></td>
-              <td><pre>{{ conf.crontab }}</pre></td>
+              <td><pre>{{ gerrit_query }}</pre></td>
+              <td><pre>{{ crontab }}</pre></td>
               <td>{{ crontabs[channel][1] }}</td>
             </tr>
           {% endfor %}

@@ -4,7 +4,7 @@ import secrets
 from flask import Flask, request, session, render_template, redirect, url_for, flash, g
 from cronjob import init_crontabs
 import slack
-from db import Database
+from db import Database, SlackToken, Config
 
 
 class Alert:
@@ -25,6 +25,12 @@ app.secret_key = os.environ['SECRET_KEY']
 @app.before_request
 def before_request():
     g.db = Database()
+
+
+@app.after_request
+def after_request(response):
+    g.db.close()
+    return response
 
 
 @app.route('/')
@@ -57,6 +63,27 @@ def new():
     return render_template('new.html', channel=session['webhook_data']['incoming_webhook']['channel'])
 
 
+@app.route('/new', methods=['POST'])
+def save_to_db():
+    wd = session['webhook_data']
+    slack_token = SlackToken(
+        wd['incoming_webhook']['channel'],
+        wd['incoming_webhook']['channel_id'],
+        wd['incoming_webhook']['url'],
+        wd['incoming_webhook']['configuration_url'],
+        wd['access_token'],
+        wd['scope'],
+        wd['user_id'],
+        wd['team_name'],
+        wd['team_id'],
+    )
+    config = Config('bla', '*/1 * * * *')
+    g.db.save_config(slack_token, config)
+    session.clear()
+    flash(f'Config added for {slack_token.channel}', Alert.SUCCESS)
+    return redirect('/')
+
+
 @app.route('/delete-unfinished', methods=['POST'])
 def delete_unfinished():
     res = slack.revoke_token(session['webhook_data']['access_token'])
@@ -72,7 +99,7 @@ def delete_unfinished():
 
 @app.route('/slack-oauth')
 def slack_oauth():
-    # If the states don't match, the request has been created by a third party and the process should be aborted.
+    # If the states don't match, the request come from a third party and the process should be aborted.
     # See https://api.slack.com/docs/slack-button
     if request.args['state'] != session['oauth_state']:
         return 'Invalid state. You have been logged and will be caught.'
