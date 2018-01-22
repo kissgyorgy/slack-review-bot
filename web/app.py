@@ -25,6 +25,7 @@ app.secret_key = os.environ['SECRET_KEY']
 @app.before_request
 def before_request():
     g.db = Database()
+    g.SLACK_BUTTON_URL = os.environ['SLACK_BUTTON_URL']
 
 
 @app.after_request
@@ -60,6 +61,9 @@ def edit():
 
 @app.route('/new', methods=['GET'])
 def new():
+    if 'webhook_data' not in session:
+        session['oauth_state'] = secrets.token_urlsafe(32)
+        return redirect(g.SLACK_BUTTON_URL + session['oauth_state'])
     return render_template('new.html', channel=session['webhook_data']['incoming_webhook']['channel'])
 
 
