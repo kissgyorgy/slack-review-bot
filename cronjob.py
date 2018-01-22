@@ -19,7 +19,7 @@ def init_crontabs(config):
 def main():
     db = Database()
     print('Crontab started')
-    config = db.load_config()
+    config = db.load_crontabs()
     print('Loaded config:')
     pprint(config)
     crontabs = init_crontabs(config)

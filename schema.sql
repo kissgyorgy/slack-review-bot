@@ -21,3 +21,9 @@ CREATE TABLE crontabs (
   crontab TEXT,
   FOREIGN KEY(slack_token_id) REFERENCES slack_tokens(id)
 );
+
+
+CREATE TABLE environment (
+  name TEXT UNIQUE,
+  value TEXT
+);

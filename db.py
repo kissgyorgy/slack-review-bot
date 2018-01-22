@@ -14,10 +14,16 @@ class SlackToken(NamedTuple):
     team_id: str
 
 
-class Config(NamedTuple):
+class Crontab(NamedTuple):
     # slack_token_id will be automatically determined
     gerrit_query: str
     crontab: str
+
+
+class Environment(NamedTuple):
+    SLACK_CLIENT_ID: str
+    SLACK_CLIENT_SECRET: str
+    SECRET_KEY: str
 
 
 class Database:
@@ -33,22 +39,12 @@ class Database:
             self._conn.cursor().executescript(f.read())
         self._conn.commit()
 
-    def load_config_old(self):
-        import glob
-        import json
+    def load_environment(self):
+        cur = self._conn.execute('SELECT * FROM environment')
+        res = cur.fetchall()
+        return Environment(**{r['name']: r['value'] for r in res})
 
-        config = {}
-
-        for fname in glob.glob('config/*.json'):
-            print('Processing file', fname)
-            with open(fname) as fp:
-                channel_config = json.load(fp)
-            channel = channel_config['slack']['incoming_webhook']['channel']
-            config[channel] = channel_config
-
-        return config
-
-    def load_config(self):
+    def load_crontabs(self):
         cur = self._conn.execute("""
             SELECT channel, gerrit_query, crontab
             FROM crontabs
@@ -56,13 +52,13 @@ class Database:
         """)
         return cur.fetchall()
 
-    def save_config(self, slack_token, config):
+    def save_crontab(self, slack_token, crontab):
         slack_query = """
             INSERT INTO slack_tokens(
                 channel, channel_id, webhook_url, webhook_config_url, access_token, scope, user_id, team_name, team_id
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
-        config_query = "INSERT INTO crontabs (slack_token_id, gerrit_query, crontab) VALUES (?, ?, ?);"
+        crontab_query = "INSERT INTO crontabs (slack_token_id, gerrit_query, crontab) VALUES (?, ?, ?);"
         with self._conn:
             cur = self._conn.execute(slack_query, slack_token)
-            self._conn.execute(config_query, (cur.lastrowid, *config))
+            self._conn.execute(crontab_query, (cur.lastrowid, *crontab))

@@ -1,4 +1,3 @@
-import os
 import requests
 
 
@@ -12,6 +11,7 @@ X = ':x:'
 
 
 SLACK_API_URL = 'https://slack.com/api'
+SLACK_OAUTH_URL = 'https://slack.com/oauth/authorize'
 
 
 def escape(text):
@@ -42,11 +42,11 @@ def make_attachment(color, author_name, author_link):
     return {'color': color, 'author_name': author_name, 'author_link': author_link}
 
 
-def request_oauth_token(code):
+def request_oauth_token(env, code):
     # documentation: https://api.slack.com/methods/oauth.access
     res = requests.post(SLACK_API_URL + '/oauth.access', {
-        'client_id': os.environ['SLACK_CLIENT_ID'],
-        'client_secret': os.environ['SLACK_CLIENT_SECRET'],
+        'client_id': env.SLACK_CLIENT_ID,
+        'client_secret': env.SLACK_CLIENT_SECRET,
         'code': code,
     })
     # example in slack_messages/oauth.access.json
@@ -55,3 +55,7 @@ def request_oauth_token(code):
 
 def revoke_token(token):
     return requests.post(SLACK_API_URL + '/auth.revoke', {'token': token})
+
+
+def make_button_url(env, state):
+    return f'{SLACK_OAUTH_URL}?scope=incoming-webhook&client_id={env.SLACK_CLIENT_ID}&state={state}'

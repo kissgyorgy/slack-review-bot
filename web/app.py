@@ -1,10 +1,9 @@
-import os
 import secrets
 # import uwsgi
 from flask import Flask, request, session, render_template, redirect, url_for, flash, g
 from cronjob import init_crontabs
 import slack
-from db import Database, SlackToken, Config
+from db import Database, SlackToken, Crontab
 
 
 class Alert:
@@ -18,14 +17,18 @@ class Alert:
     DARK = 'dark'
 
 
+# FIXME?
+db = Database()
+env = db.load_environment()
+db.close()
+
 app = Flask(__name__)
-app.secret_key = os.environ['SECRET_KEY']
+app.secret_key = env.SECRET_KEY
 
 
 @app.before_request
 def before_request():
     g.db = Database()
-    g.SLACK_BUTTON_URL = os.environ['SLACK_BUTTON_URL']
 
 
 @app.after_request
@@ -36,12 +39,13 @@ def after_request(response):
 
 @app.route('/')
 def index():
-    config = g.db.load_config()
+    config = g.db.load_crontabs()
     crontabs = init_crontabs(config)
 
     # if the state is different we got from oauth authorization, we should refuse the token, because
     # probably a third-party generated it. For details, see https://api.slack.com/docs/slack-button
     session['oauth_state'] = secrets.token_urlsafe(32)
+    slack_button_url = slack.make_button_url(env, session['oauth_state'])
 
     if 'webhook_data' in session:
         has_unfinished_config = True
@@ -51,7 +55,8 @@ def index():
         unfinished_channel = None
 
     return render_template('index.html', config=config, crontabs=crontabs, oauth_state=session['oauth_state'],
-                           has_unfinished_config=has_unfinished_config, unfinished_channel=unfinished_channel)
+                           has_unfinished_config=has_unfinished_config, unfinished_channel=unfinished_channel,
+                           slack_button_url=slack_button_url)
 
 
 @app.route('/edit')
@@ -63,7 +68,8 @@ def edit():
 def new():
     if 'webhook_data' not in session:
         session['oauth_state'] = secrets.token_urlsafe(32)
-        return redirect(g.SLACK_BUTTON_URL + session['oauth_state'])
+        slack_button_url = slack.make_button_url(env, session['oauth_state'])
+        return redirect(slack_button_url)
     return render_template('new.html', channel=session['webhook_data']['incoming_webhook']['channel'])
 
 
@@ -81,8 +87,8 @@ def save_to_db():
         wd['team_name'],
         wd['team_id'],
     )
-    config = Config('bla', '*/1 * * * *')
-    g.db.save_config(slack_token, config)
+    crontab = Crontab('bla', '*/1 * * * *')
+    g.db.save_crontab(slack_token, crontab)
     session.clear()
     flash(f'Config added for {slack_token.channel}', Alert.SUCCESS)
     return redirect('/')
@@ -116,7 +122,7 @@ def slack_oauth():
         flash('Unknown error - try again', Alert.DANGER)
         return redirect('/')
 
-    webhook_data = slack.request_oauth_token(request.args['code'])
+    webhook_data = slack.request_oauth_token(env, request.args['code'])
     session['webhook_data'] = webhook_data
 
     return redirect(url_for('new'))

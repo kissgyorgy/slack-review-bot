@@ -10,7 +10,7 @@
           or you can <button type="submit" class="btn btn-danger">Delete</button> it.
         </form>
       {% else %}
-        <a href="{{ g.SLACK_BUTTON_URL }}{{ oauth_state }}">
+        <a href="{{ slack_button_url }}">
           <img alt="Add to Slack" height="40" width="139" src="https://platform.slack-edge.com/img/add_to_slack.png" srcset="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x" />
         </a>
       {% endif %}
