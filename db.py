@@ -43,7 +43,8 @@ class Database:
     def load_environment(self):
         cur = self._conn.execute('SELECT * FROM environment')
         res = cur.fetchall()
-        return Environment(**{r['name']: r['value'] for r in res})
+        return Environment(**{r['name']: r['value'] for r in res
+                              if r['name'] in Environment._fields})
 
     def load_crontabs(self):
         cur = self._conn.execute("""
