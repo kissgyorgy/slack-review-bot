@@ -1,5 +1,10 @@
-FROM ubuntu:16.04
+FROM alpine
 
-COPY systemd/ /root/units
+RUN mkdir /app
+WORKDIR /app
+VOLUME /app
 
-CMD ["/bin/systemd", "--system", "--unit", "/root/units/gerrit-slack-bot.service"]
+RUN apk update && apk add python3 uwsgi-python3 sqlite
+RUN pip3 install flask croniter requests
+
+CMD ["uwsgi", "--ini", "uwsgi.ini"]
