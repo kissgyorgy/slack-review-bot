@@ -1,13 +1,13 @@
 import requests
 
 
-PLUS_ONE = ':+1:'
-POOP = ':poop:'
-JS = ':js:'
-EXCLAMATION = ':exclamation:'
-
-WHITE_CHECK_MARK = ':white_check_mark:'
-X = ':x:'
+class Emoji:
+    PLUS_ONE = ':+1:'
+    POOP = ':poop:'
+    JS = ':js:'
+    EXCLAMATION = ':exclamation:'
+    WHITE_CHECK_MARK = ':white_check_mark:'
+    X = ':x:'
 
 
 SLACK_API_URL = 'https://slack.com/api'

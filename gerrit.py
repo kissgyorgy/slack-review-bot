@@ -1,49 +1,61 @@
 import json
 import requests
+import slack
 
 
-def get_changes(config):
+def get_changes(gerrit_url, query):
     # For +1 and -1 information, LABELS option has to be requested. See:
     # https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#detailed-labels
     # for owner name, DETAILED_ACCOUNTS:
     # https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#detailed-accounts
-    changes_api_url = f'{config.GERRIT_URL}/changes/?o=LABELS&o=DETAILED_ACCOUNTS&q={config.QUERY}'
+    changes_api_url = f'{gerrit_url}/changes/?o=LABELS&o=DETAILED_ACCOUNTS&q={query}'
     gerrit_change_list = get(changes_api_url)
-    return [Change(config, c) for c in gerrit_change_list]
+    return [Change(gerrit_url, c) for c in gerrit_change_list]
 
 
-def get(url):
-    res = requests.get(url, verify=False)
+def get(api_url):
+    res = requests.get(api_url, verify=False)
     # There is a )]}' sequence at the start of each response...
     # we can't process it simply as JSON because of that.
     fixed_body = res.text[4:]
     return json.loads(fixed_body)
 
 
-def make_changes_url(config):
-    return f'{config.GERRIT_URL}/#/q/{config.QUERY}'
+def make_changes_url(gerrit_url, query):
+    return f'{gerrit_url}/#/q/{query}'
 
 
 class Change:
+    PLUS_ONE = slack.Emoji.PLUS_ONE
+    PLUS_TWO = slack.Emoji.PLUS_ONE * 2
+    MINUS_ONE = slack.Emoji.POOP
+    MINUS_TWO = slack.Emoji.JS
+    MISSING = slack.Emoji.EXCLAMATION
 
-    def __init__(self, config, json_change):
-        self._config = config
+    VERIFIED = slack.Emoji.WHITE_CHECK_MARK
+    FAILED = slack.Emoji.X
+
+    PLUS_TWO_COLOR = '#36a64f'
+    PLUS_ONE_COLOR = '#DBF32D'
+    NO_PLUS_COLOR = '#EC1313'
+
+    def __init__(self, gerrit_url, json_change):
+        self._gerrit_url = gerrit_url
         self._change = json_change
 
     @property
     def subject(self):
-        return self._config.ESCAPER(self._change['subject'])
+        return slack.escape(self._change['subject'])
 
     @property
     def url(self):
-        gerrit_url = self._config.GERRIT_URL
         change_number = self._change['_number']
-        return f'{gerrit_url}/{change_number}'
+        return f'{self._gerrit_url}/{change_number}'
 
     @property
     def subject_url(self):
         """Return the subject hyperlinked to the Gerrit change_id."""
-        return self._config.LINK_MAKER(self.url, self.subject)
+        return slack.make_link(self.url, self.subject)
 
     @property
     def author(self):
@@ -55,15 +67,15 @@ class Change:
     def code_review(self):
         cr = self._change['labels']['Code-Review']
         if 'approved' in cr:
-            return self._config.PLUS_TWO
+            return self.PLUS_TWO
         elif 'value' not in cr:
-            return self._config.MISSING
+            return self.MISSING
         elif cr['value'] == 1:
-            return self._config.PLUS_ONE
+            return self.PLUS_ONE
         elif cr['value'] == -1:
-            return self._config.MINUS_ONE
+            return self.MINUS_ONE
         elif cr['value'] == -2:
-            return self._config.MINUS_TWO
+            return self.MINUS_TWO
 
     @property
     def verified(self):
@@ -71,15 +83,15 @@ class Change:
         if not ver:
             return ''
         elif 'approved' in ver:
-            return self._config.VERIFIED
+            return self.VERIFIED
         else:
-            return self._config.FAILED
+            return self.FAILED
 
     @property
     def color(self):
-        if self.code_review == self._config.PLUS_TWO:
-            return self._config.PLUS_TWO_COLOR
-        elif self.code_review == self._config.PLUS_ONE and self.verified == self._config.VERIFIED:
-            return self._config.PLUS_ONE_COLOR
+        if self.code_review == self.PLUS_TWO:
+            return self.PLUS_TWO_COLOR
+        elif self.code_review == self.PLUS_ONE and self.verified == self.VERIFIED:
+            return self.PLUS_ONE_COLOR
         else:
-            return self._config.NO_PLUS_COLOR
+            return self.NO_PLUS_COLOR
