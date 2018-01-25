@@ -47,6 +47,7 @@ def request_oauth_token(env, code):
     res = requests.post(SLACK_API_URL + '/oauth.access', {
         'client_id': env.SLACK_CLIENT_ID,
         'client_secret': env.SLACK_CLIENT_SECRET,
+        'redirect_uri': env.SLACK_REDIRECT_URI,
         'code': code,
     })
     # example in slack_messages/oauth.access.json
@@ -58,4 +59,6 @@ def revoke_token(token):
 
 
 def make_button_url(env, state):
-    return f'{SLACK_OAUTH_URL}?scope=incoming-webhook&client_id={env.SLACK_CLIENT_ID}&state={state}'
+    client_id = env.SLACK_CLIENT_ID
+    redirect_uri = env.SLACK_REDIRECT_URI
+    return f'{SLACK_OAUTH_URL}?scope=incoming-webhook&client_id={client_id}&state={state}&redirect_uri={redirect_uri}'
