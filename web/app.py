@@ -35,26 +35,32 @@ def after_request(response):
     return response
 
 
-@app.route('/')
-def index():
-    config = g.db.load_crontabs()
-    crontabs = init_crontabs(config)
-
+def _make_slack_button_url():
     # if the state is different we got from oauth authorization, we should refuse the token, because
     # probably a third-party generated it. For details, see https://api.slack.com/docs/slack-button
     session['oauth_state'] = secrets.token_urlsafe(32)
-    slack_button_url = slack.make_button_url(env, session['oauth_state'])
+    return slack.make_button_url(env, session['oauth_state'])
 
-    if 'webhook_data' in session:
-        has_unfinished_config = True
-        unfinished_channel = session['webhook_data']['incoming_webhook']['channel']
-    else:
-        has_unfinished_config = False
-        unfinished_channel = None
 
-    return render_template('index.html', config=config, crontabs=crontabs, oauth_state=session['oauth_state'],
-                           has_unfinished_config=has_unfinished_config, unfinished_channel=unfinished_channel,
-                           slack_button_url=slack_button_url)
+def _get_channel():
+    try:
+        return session['webhook_data']['incoming_webhook']['channel']
+    except KeyError:
+        return None
+
+
+@app.route('/')
+def index():
+    config = g.db.load_crontabs()
+
+    return render_template('index.html',  # noqa
+        config=config,
+        crontabs=init_crontabs(config),
+        oauth_state=session['oauth_state'],
+        has_unfinished_config='webhook_data' in session,
+        unfinished_channel=_get_channel(),
+        slack_button_url=_make_slack_button_url(),
+    )
 
 
 @app.route('/edit')
@@ -65,10 +71,8 @@ def edit():
 @app.route('/new', methods=['GET'])
 def new():
     if 'webhook_data' not in session:
-        session['oauth_state'] = secrets.token_urlsafe(32)
-        slack_button_url = slack.make_button_url(env, session['oauth_state'])
-        return redirect(slack_button_url)
-    return render_template('new.html', channel=session['webhook_data']['incoming_webhook']['channel'])
+        return redirect(_make_slack_button_url())
+    return render_template('new.html', channel=_get_channel())
 
 
 @app.route('/new', methods=['POST'])
@@ -99,9 +103,8 @@ def delete_unfinished():
         flash('Unknown error revoking access token!', Alert.DANGER)
         redirect('/')
 
-    channel = session['webhook_data']['incoming_webhook']['channel']
     session.clear()
-    flash(f'Deleted unfinished request for {channel}, you can add a new channel now.', Alert.WARNING)
+    flash(f'Deleted unfinished request for {_get_channel()}, you can add a new channel now.', Alert.WARNING)
     return redirect('/')
 
 
