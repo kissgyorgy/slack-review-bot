@@ -1,9 +1,16 @@
 import secrets
-# import uwsgi
 from flask import Flask, request, session, render_template, redirect, url_for, flash, g
 from cronjob import init_crontabs
 import slack
 from db import Database, SlackToken, Crontab
+
+
+db = Database()
+env = db.load_environment()
+db.close()
+
+app = Flask(__name__)
+app.secret_key = env.SECRET_KEY
 
 
 class Alert:
@@ -15,15 +22,6 @@ class Alert:
     INFO = 'info'
     LIGHT = 'light'
     DARK = 'dark'
-
-
-# FIXME?
-db = Database()
-env = db.load_environment()
-db.close()
-
-app = Flask(__name__)
-app.secret_key = env.SECRET_KEY
 
 
 @app.before_request

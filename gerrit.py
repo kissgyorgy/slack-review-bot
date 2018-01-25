@@ -7,7 +7,7 @@ def get_changes(config):
     # https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#detailed-labels
     # for owner name, DETAILED_ACCOUNTS:
     # https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#detailed-accounts
-    changes_api_url =  f'{config.GERRIT_URL}/changes/?o=LABELS&o=DETAILED_ACCOUNTS&q={config.QUERY}'
+    changes_api_url = f'{config.GERRIT_URL}/changes/?o=LABELS&o=DETAILED_ACCOUNTS&q={config.QUERY}'
     gerrit_change_list = get(changes_api_url)
     return [Change(config, c) for c in gerrit_change_list]
 
@@ -36,7 +36,9 @@ class Change:
 
     @property
     def url(self):
-        return f'{self._config.GERRIT_URL}/{self._change['_number']}'
+        gerrit_url = self._config.GERRIT_URL
+        change_number = self._change['_number']
+        return f'{gerrit_url}/{change_number}'
 
     @property
     def subject_url(self):
@@ -45,6 +47,8 @@ class Change:
 
     @property
     def author(self):
+        # it is the username because it takes less characters, so
+        # more valuable information can fit in one line
         return self._change['owner']['username']
 
     @property
@@ -63,7 +67,7 @@ class Change:
 
     @property
     def verified(self):
-        ver = self._change['labels']["Verified"]
+        ver = self._change['labels']['Verified']
         if not ver:
             return ''
         elif 'approved' in ver:
