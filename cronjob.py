@@ -24,6 +24,7 @@ def main():
     pprint(config)
     crontabs = init_crontabs(config)
 
+    next_dt = None
     while True:
         now = dt.datetime.now()
         rounded_now = now.replace(second=0, microsecond=0)
