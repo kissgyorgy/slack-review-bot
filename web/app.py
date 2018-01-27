@@ -107,7 +107,7 @@ def is_form_valid():
 
 
 @app.route('/new', methods=['POST'])
-def save_to_db():
+def save_new_to_db():
     if not is_form_valid():
         session['invalid_form'] = request.form
         return redirect(url_for('new'))
