@@ -89,7 +89,7 @@ def save_to_db():
         wd['team_name'],
         wd['team_id'],
     )
-    crontab = Crontab('bla', '*/1 * * * *')
+    crontab = Crontab(request.form['gerrit_query'], request.form['crontab'])
     g.db.save_crontab(slack_token, crontab)
     session.clear()
     flash(f'Config added for {slack_token.channel}', Alert.SUCCESS)
