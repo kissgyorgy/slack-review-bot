@@ -1,45 +1,57 @@
 {% extends "base.html" %}
 
+
+{% block title %}
+  {{ super() }} - edit channel
+{% endblock %}
+
+
 {% block content %}
-  <div class="row">
-    <div class="col-12">
-      <form>
-        <div class="form-group">
-          <label for="channel">Slack channel</label>
-          <input type="text" class="form-control" id="channel" placeholder="#scb-best or @walkman" value="#scb-best">
-        </div>
+  <form method="post" action="{{ url_for('edit', crontab_id=crontab_id) }}">
 
-        {# TODO: https://codepen.io/aperyon/pen/yzmbpY?editors=1111 #}
-        <div class="form-group">
-          <label for="timespec">Time specification:</label>
-          {% for day in ["Mon", "Tue", "Wed", "Thu", "Fri"] %}
-          <div class="form-check form-check-inline">
-            <label class="form-check-label">
-              <input class="form-check-input" type="checkbox" id="day-check-{{ day }}" value="{{ day }}"> {{ day }}
-            </label>
-          </div>
-          {% endfor %}
-          <input type="text" class="form-control" id="timespec2" placeholder="#scb-best or @walkman" value="Mon-Fri *-*-* 9,10,11,12,13,14,15,16,17,18:00">
-        </div>
-
-        <div class="form-group">
-          <label for="gerrit-query">Gerrit query</label>
-          <textarea class="form-control" id="gerrit-query" rows="3">ownerin:scb-best+AND+status:open+AND+NOT+label:Code-Review=2</textarea>
-        </div>
-        <button type="submit" class="btn btn-primary">Mentés és újratöltés</button>
-      </form>
+    <div class="form-group">
+      <label for="channel">#channel or @user:</label>
+      <input type="text" class="form-control" id="channel" value="{{ channel }}" disabled>
     </div>
-  </div>
-{% endblock content %}
+
+    <div class="form-group">
+      <label for="gerrit_query">Gerrit query:</label>
+      <input type="text" class="form-control" id="gerrit_query" name="gerrit_query"
+             placeholder="e.g. status:open+AND+NOT+label:Code-Review=2"
+             value="{{ gerrit_query }}">
+    </div>
+
+    <div class="form-group">
+      <label for="crontab">Crontab:</label>
+      <input type="text" class="form-control" id="crontab" name="crontab"
+             placeholder="e.g. 9-18 * * * mon-fri"
+             value="{{ crontab }}">
+    </div>
+
+    <div class="row">
+      <div class="col-6">
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+      <div class="col-6">
+        <a id="delete-button" href="{{ url_for('delete_existing') }}" class="btn btn-danger float-right">
+          Delete
+        </a>
+      </div>
+    </div>
+
+  </form>
+
+  {# This is here because forms cannot be nested, but deletion is on a different endpoint. #}
+  <form id="cancel-form" action="{{ url_for('delete_unfinished') }}" method="post"></form>
+
+{% endblock %}
 
 
 {% block js %}
   <script>
-    events: [{
-      title: "#scb-best",
-      start: '10:00', // a start time (10am in this example)
-      end: '14:00', // an end time (2pm in this example)
-      dow: [ 1, 2, 3, 4, 5 ] // Repeat monday - friday
-    }],
+    $( "#cancel-button" ).click(function(event) {
+      event.preventDefault();
+      $( "#cancel-form" ).submit();
+    });
   </script>
 {% endblock %}

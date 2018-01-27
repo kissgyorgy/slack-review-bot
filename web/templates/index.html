@@ -29,11 +29,15 @@
           </tr>
         </thead>
         <tbody>
-          {% for channel, gerrit_query, crontab in config %}
+          {% for crontab_id, channel, gerrit_query, crontab in config %}
             <tr>
-              <td>{{ channel }}</td>
-              <td><pre>{{ gerrit_query }}</pre></td>
-              <td><pre>{{ crontab }}</pre></td>
+              <td><a href="{{ url_for('edit', crontab_id=crontab_id) }}">{{ channel }}</a></td>
+              <td>
+                <a href="{{ url_for('edit', crontab_id=crontab_id) }}">
+                  <pre>{{ gerrit_query }}</pre>
+                </a>
+              </td>
+              <td><a href="{{ url_for('edit', crontab_id=crontab_id) }}"><pre>{{ crontab }}</pre></a></td>
               <td>{{ crontabs[channel][1] }}</td>
             </tr>
           {% endfor %}

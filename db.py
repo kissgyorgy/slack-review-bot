@@ -48,11 +48,21 @@ class Database:
 
     def load_crontabs(self):
         cur = self._conn.execute("""
-            SELECT channel, gerrit_query, crontab
+            SELECT crontabs.id crontab_id, channel, gerrit_query, crontab
             FROM crontabs
             JOIN slack_tokens ON crontabs.slack_token_id = slack_tokens.id;
         """)
         return cur.fetchall()
+
+    def load_crontab(self, crontab_id):
+        cur = self._conn.execute("""
+            SELECT channel, gerrit_query, crontab
+            FROM crontabs
+            JOIN slack_tokens ON crontabs.slack_token_id = slack_tokens.id
+            WHERE crontabs.id = ?;
+        """, (crontab_id,))
+        res = cur.fetchone()
+        return res['channel'], res['gerrit_query'], res['crontab']
 
     def save_crontab(self, slack_token, crontab):
         slack_insert = """
@@ -64,3 +74,8 @@ class Database:
         with self._conn:
             cur = self._conn.execute(slack_insert, slack_token)
             self._conn.execute(crontab_insert, (cur.lastrowid, *crontab))
+
+    def update_crontab(self, crontab_id, crontab):
+        with self._conn:
+            self._conn.execute('UPDATE crontabs SET gerrit_query = ?, crontab = ? WHERE id = ?',
+                               (*crontab, crontab_id))

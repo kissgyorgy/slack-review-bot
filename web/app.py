@@ -63,9 +63,18 @@ def index():
     )
 
 
-@app.route('/edit')
-def edit():
-    return render_template('edit.html')
+@app.route('/edit/<int:crontab_id>', methods=['GET', 'POST'])
+def edit(crontab_id):
+    channel, gerrit_query, crontab = g.db.load_crontab(crontab_id)
+
+    if request.method == 'POST' and is_form_valid():
+        gerrit_query = request.form['gerrit_query']
+        crontab = request.form['crontab']
+        g.db.update_crontab(crontab_id, Crontab(gerrit_query, crontab))
+        flash('Updated succesfully.', Alert.SUCCESS)
+
+    return render_template('edit.html', channel=channel, gerrit_query=gerrit_query, crontab=crontab,
+                           crontab_id=crontab_id)
 
 
 @app.route('/new', methods=['GET'])

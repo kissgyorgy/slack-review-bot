@@ -9,7 +9,7 @@ from db import Database
 def init_crontabs(config):
     crontabs = {}
     base = dt.datetime.now()
-    for channel, _, crontab in config:
+    for _, channel, _, crontab in config:
         cron = croniter(crontab, base)
         next_dt = cron.get_next(dt.datetime)
         crontabs[channel] = [cron, next_dt]
