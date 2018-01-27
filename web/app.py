@@ -136,7 +136,7 @@ def delete_unfinished():
     res = slack.revoke_token(session['webhook_data']['access_token'])
     if not res.ok or not res.json()['ok']:
         flash('Unknown error revoking access token!', Alert.DANGER)
-        redirect('/')
+        return redirect('/')
 
     session.clear()
     flash(f'Deleted unfinished request for {_get_channel()}, you can add a new channel now.', Alert.WARNING)
