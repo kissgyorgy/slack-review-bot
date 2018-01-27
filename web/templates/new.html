@@ -16,12 +16,16 @@
 
     <div class="form-group">
       <label for="gerrit_query">Gerrit query:</label>
-      <input type="text" class="form-control" id="gerrit_query" name="gerrit_query" placeholder="e.g. status:open+AND+NOT+label:Code-Review=2" value="">
+      <input type="text" class="form-control" id="gerrit_query" name="gerrit_query"
+             placeholder="e.g. status:open+AND+NOT+label:Code-Review=2"
+             value="{% if invalid_form %}{{ invalid_form['gerrit_query'] }}{% endif %}">
     </div>
 
     <div class="form-group">
       <label for="crontab">Crontab:</label>
-      <input type="text" class="form-control" id="crontab" name="crontab" placeholder="e.g. 9-18 * * * mon-fri" value="">
+      <input type="text" class="form-control" id="crontab" name="crontab"
+             placeholder="e.g. 9-18 * * * mon-fri"
+             value="{% if invalid_form %}{{ invalid_form['crontab'] }}{% endif %}">
     </div>
 
     <div class="row">
