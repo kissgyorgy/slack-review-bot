@@ -56,7 +56,6 @@ def index():
     return render_template('index.html',  # noqa
         config=config,
         crontabs=init_crontabs(config),
-        oauth_state=session['oauth_state'],
         has_unfinished_config='webhook_data' in session,
         unfinished_channel=_get_channel(),
         slack_button_url=_make_slack_button_url(),
