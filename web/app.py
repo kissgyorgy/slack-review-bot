@@ -176,3 +176,8 @@ def slack_oauth():
     session['webhook_data'] = webhook_data
 
     return redirect(url_for('new'))
+
+
+@app.route('/usage')
+def usage():
+    return render_template('usage.html')
