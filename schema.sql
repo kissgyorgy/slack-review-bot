@@ -19,7 +19,7 @@ CREATE TABLE crontabs (
   slack_token_id INTEGER,
   gerrit_query TEXT,
   crontab TEXT,
-  FOREIGN KEY(slack_token_id) REFERENCES slack_tokens(id)
+  FOREIGN KEY(slack_token_id) REFERENCES slack_tokens(id) ON DELETE CASCADE
 );
 
 

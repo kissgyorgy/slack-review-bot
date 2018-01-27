@@ -31,6 +31,8 @@ class Database:
     def __init__(self):
         self._conn = sqlite3.connect('config.db')
         self._conn.row_factory = sqlite3.Row
+        with self._conn:
+            self._conn.execute('PRAGMA foreign_keys = ON')
 
     def close(self):
         self._conn.close()
@@ -75,7 +77,22 @@ class Database:
             cur = self._conn.execute(slack_insert, slack_token)
             self._conn.execute(crontab_insert, (cur.lastrowid, *crontab))
 
+    def delete(self, slack_token_id):
+        with self._conn:
+            # this will delete with CASCADE, so crontab entries belonging to this will be deleted also
+            self._conn.execute('DELETE FROM slack_tokens WHERE id = ?', (slack_token_id,))
+
     def update_crontab(self, crontab_id, crontab):
         with self._conn:
             self._conn.execute('UPDATE crontabs SET gerrit_query = ?, crontab = ? WHERE id = ?',
                                (*crontab, crontab_id))
+
+    def load_token_and_channel(self, crontab_id):
+        with self._conn:
+            cur = self._conn.execute("""
+                SELECT access_token, channel, slack_tokens.id slack_token_id
+                FROM slack_tokens
+                JOIN crontabs ON crontabs.slack_token_id = slack_tokens.id
+                WHERE crontabs.id = ?
+            """, (crontab_id,))
+        return cur.fetchone()

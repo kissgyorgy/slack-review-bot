@@ -33,7 +33,7 @@
         <button type="submit" class="btn btn-primary">Save</button>
       </div>
       <div class="col-6">
-        <a id="delete-button" href="{{ url_for('delete_existing') }}" class="btn btn-danger float-right">
+        <a id="delete-button" href="{{ url_for('delete_existing', crontab_id=crontab_id) }}" class="btn btn-danger float-right">
           Delete
         </a>
       </div>
@@ -42,16 +42,16 @@
   </form>
 
   {# This is here because forms cannot be nested, but deletion is on a different endpoint. #}
-  <form id="cancel-form" action="{{ url_for('delete_unfinished') }}" method="post"></form>
+  <form id="delete-form" action="{{ url_for('delete_existing', crontab_id=crontab_id) }}" method="post"></form>
 
 {% endblock %}
 
 
 {% block js %}
   <script>
-    $( "#cancel-button" ).click(function(event) {
+    $( "#delete-button" ).click(function(event) {
       event.preventDefault();
-      $( "#cancel-form" ).submit();
+      $( "#delete-form" ).submit();
     });
   </script>
 {% endblock %}

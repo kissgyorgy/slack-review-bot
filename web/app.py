@@ -143,6 +143,20 @@ def delete_unfinished():
     return redirect('/')
 
 
+@app.route('/delete/<int:crontab_id>', methods=['POST'])
+def delete_existing(crontab_id):
+    access_token, channel, slack_token_id = g.db.load_token_and_channel(crontab_id)
+    res = slack.revoke_token(access_token)
+    if not res.ok or not res.json()['ok']:
+        print(res.json())
+        flash('Unknown error revoking access token!', Alert.DANGER)
+        return redirect('/')
+
+    g.db.delete(slack_token_id)
+    flash(f'Succesfully removed bot from {channel}', Alert.SUCCESS)
+    return redirect('/')
+
+
 @app.route('/slack-oauth')
 def slack_oauth():
     # If the states don't match, the request come from a third party and the process should be aborted.
