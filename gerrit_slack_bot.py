@@ -6,8 +6,8 @@ import slack
 import gerrit
 
 
-def get_gerrit_changes_and_post_to_slack(gerrit_url, gerrit_query, slack_webhook_url, slack_channel):
     gerrit_changes = gerrit.get_changes(gerrit_url, gerrit_query)
+def run(gerrit_url, gerrit_query, slack_webhook_url, slack_channel=None):
     if not gerrit_changes:
         return True
 

@@ -25,12 +25,16 @@ def escape(text):
 
 
 class SlackClient:
-    def __init__(self, webhook_url, channel):
+    def __init__(self, webhook_url, channel=None):
         self._webhook_url = webhook_url
         self._channel = channel
 
     def post(self, text, attachments):
-        payload = {'channel': self._channel, 'text': text, 'attachments': attachments}
+        payload = {'text': text, 'attachments': attachments}
+        # Channel doesn't matter if used as a proper Slack app, because webhook_url is tied to a channel anyway.
+        # It only matters if there is one global incoming webhook configured.
+        if self._channel is not None:
+            payload['channel'] = self._channel
         return requests.post(self._webhook_url, json=payload)
 
 
