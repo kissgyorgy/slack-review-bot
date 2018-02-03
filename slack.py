@@ -1,3 +1,4 @@
+from urllib.parse import urlencode
 import requests
 
 
@@ -18,10 +19,10 @@ def escape(text):
     """Escape Slack special characters.
     See: https://api.slack.com/docs/message-formatting#how_to_escape_characters
     """
-    escaped = text.replace('<', '&lt;')
-    escaped = escaped.replace('>', '&gt;')
-    escaped = escaped.replace('&', '&amp;')
-    return escaped
+    rv = text.replace('<', '&lt;')
+    rv = rv.replace('>', '&gt;')
+    rv = rv.replace('&', '&amp;')
+    return rv
 
 
 class SlackClient:
@@ -63,6 +64,10 @@ def revoke_token(token):
 
 
 def make_button_url(env, state):
-    client_id = env.SLACK_CLIENT_ID
-    redirect_uri = env.SLACK_REDIRECT_URI
-    return f'{SLACK_OAUTH_URL}?scope=incoming-webhook&client_id={client_id}&state={state}&redirect_uri={redirect_uri}'
+    params = urlencode({
+        'scope': 'incoming-webhook',
+        'client_id': env.SLACK_CLIENT_ID,
+        'state': state,
+        'redirect_uri': env.SLACK_REDIRECT_URI,
+    })
+    return f'{SLACK_OAUTH_URL}?{params}'
