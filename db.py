@@ -12,6 +12,8 @@ class SlackToken(NamedTuple):
     user_id: str
     team_name: str
     team_id: str
+    bot_user_id: str
+    bot_access_token: str
 
 
 class Crontab(NamedTuple):

@@ -10,7 +10,9 @@ CREATE TABLE slack_tokens (
   scope TEXT,
   user_id TEXT,
   team_name TEXT,
-  team_id TEXT
+  team_id TEXT,
+  bot_user_id TEXT,
+  bot_access_token TEXT
 );
 
 

@@ -65,7 +65,7 @@ def revoke_token(token):
 
 def make_button_url(env, state):
     params = urlencode({
-        'scope': 'incoming-webhook',
+        'scope': 'incoming-webhook,bot',
         'client_id': env.SLACK_CLIENT_ID,
         'state': state,
         'redirect_uri': env.SLACK_REDIRECT_URI,
