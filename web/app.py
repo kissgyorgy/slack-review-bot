@@ -3,7 +3,7 @@ from flask import Flask, request, session, render_template, redirect, url_for, f
 from cronjob import init_crontabs
 from croniter import croniter
 import slack
-from db import Database, SlackToken, Crontab
+from database import Database, SlackToken, Crontab
 
 
 db = Database()

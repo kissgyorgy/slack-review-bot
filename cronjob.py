@@ -3,7 +3,7 @@ import time
 from pprint import pprint
 import datetime as dt
 from croniter import croniter
-from db import Database
+from database import Database
 
 
 def init_crontabs(config):
