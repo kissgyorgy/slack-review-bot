@@ -13,6 +13,8 @@ db.close()
 app = Flask(__name__)
 app.secret_key = env.SECRET_KEY
 
+slack_app = slack.App(env.SLACK_CLIENT_ID, env.SLACK_CLIENT_SECRET, env.SLACK_REDIRECT_URI)
+
 
 class Alert:
     PRIMARY = 'primary'
@@ -40,7 +42,7 @@ def _make_slack_button_url():
     # if the state is different we got from oauth authorization, we should refuse the token, because
     # probably a third-party generated it. For details, see https://api.slack.com/docs/slack-button
     session['oauth_state'] = secrets.token_urlsafe(32)
-    return slack.make_button_url(env, session['oauth_state'])
+    return slack_app.make_button_url(session['oauth_state'])
 
 
 def _get_channel():
@@ -172,8 +174,7 @@ def slack_oauth():
         flash('Unknown error - try again', Alert.DANGER)
         return redirect('/')
 
-    webhook_data = slack.request_oauth_token(env, request.args['code'])
-    session['webhook_data'] = webhook_data
+    session['webhook_data'] = slack_app.request_oauth_token(request.args['code'])
 
     return redirect(url_for('new'))
 

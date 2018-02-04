@@ -25,7 +25,19 @@ def escape(text):
     return rv
 
 
-class SlackClient:
+def make_link(url, text):
+    return f'<{url}|{text}>'
+
+
+def make_attachment(color, author_name, author_link):
+    return {'color': color, 'author_name': author_name, 'author_link': author_link}
+
+
+def revoke_token(token):
+    return requests.post(SLACK_API_URL + '/auth.revoke', {'token': token})
+
+
+class Channel:
     def __init__(self, webhook_url, channel=None):
         self._webhook_url = webhook_url
         self._channel = channel
@@ -39,35 +51,30 @@ class SlackClient:
         return requests.post(self._webhook_url, json=payload)
 
 
-def make_link(url, text):
-    return f'<{url}|{text}>'
+class App:
+    SCOPE = 'incoming-webhook,bot'
 
+    def __init__(self, client_id, client_secret, redirect_uri):
+        self._client_id = client_id
+        self._client_secret = client_secret
+        self._redirect_uri = redirect_uri
 
-def make_attachment(color, author_name, author_link):
-    return {'color': color, 'author_name': author_name, 'author_link': author_link}
+    def request_oauth_token(self, code):
+        # documentation: https://api.slack.com/methods/oauth.access
+        res = requests.post(SLACK_API_URL + '/oauth.access', {
+            'client_id': self._client_id,
+            'client_secret': self._client_secret,
+            'redirect_uri': self._redirect_uri,
+            'code': code,
+        })
+        # example in slack_messages/oauth.access.json
+        return res.json()
 
-
-def request_oauth_token(env, code):
-    # documentation: https://api.slack.com/methods/oauth.access
-    res = requests.post(SLACK_API_URL + '/oauth.access', {
-        'client_id': env.SLACK_CLIENT_ID,
-        'client_secret': env.SLACK_CLIENT_SECRET,
-        'redirect_uri': env.SLACK_REDIRECT_URI,
-        'code': code,
-    })
-    # example in slack_messages/oauth.access.json
-    return res.json()
-
-
-def revoke_token(token):
-    return requests.post(SLACK_API_URL + '/auth.revoke', {'token': token})
-
-
-def make_button_url(env, state):
-    params = urlencode({
-        'scope': 'incoming-webhook,bot',
-        'client_id': env.SLACK_CLIENT_ID,
-        'state': state,
-        'redirect_uri': env.SLACK_REDIRECT_URI,
-    })
-    return f'{SLACK_OAUTH_URL}?{params}'
+    def make_button_url(self, state):
+        params = urlencode({
+            'scope': self.SCOPE,
+            'client_id': self._client_id,
+            'redirect_uri': self._redirect_uri,
+            'state': state,
+        })
+        return f'{SLACK_OAUTH_URL}?{params}'
