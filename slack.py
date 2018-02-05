@@ -38,16 +38,15 @@ def revoke_token(token):
 
 
 class Channel:
-    def __init__(self, webhook_url, channel=None):
+    def __init__(self, webhook_url, channel):
         self._webhook_url = webhook_url
         self._channel = channel
 
+    def __str__(self):
+        return self._channel
+
     def post(self, text, attachments):
-        payload = {'text': text, 'attachments': attachments}
-        # Channel doesn't matter if used as a proper Slack app, because webhook_url is tied to a channel anyway.
-        # It only matters if there is one global incoming webhook configured.
-        if self._channel is not None:
-            payload['channel'] = self._channel
+        payload = {'text': text, 'attachments': attachments, 'channel': self._channel}
         return requests.post(self._webhook_url, json=payload)
 
 
