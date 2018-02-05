@@ -94,7 +94,6 @@ def is_form_valid():
 
     if not gerrit_query_data:
         flash('You need to have a gerrit query.', Alert.DANGER)
-        # TODO: check if it doesn't give an error against Gerrit.
         is_valid = False
 
     if not crontab_data:

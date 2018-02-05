@@ -34,7 +34,6 @@ def main():
                 print('Sending now to', channel)
                 next_dt = cron.get_next(dt.datetime)
                 crontabs[channel][1] = next_dt
-                # TODO: handle 404; https://api.slack.com/docs/slack-button
         print('Next', next_dt, 'now:', now)
         time.sleep(5)
 
