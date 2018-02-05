@@ -70,15 +70,23 @@ def get(api_url):
     return json.loads(fixed_body)
 
 
-def get_changes(gerrit_url, query):
-    # For +1 and -1 information, LABELS option has to be requested. See:
-    # https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#detailed-labels
-    # for owner name, DETAILED_ACCOUNTS:
-    # https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#detailed-accounts
-    changes_api_url = f'{gerrit_url}/changes/?o=LABELS&o=DETAILED_ACCOUNTS&q={query}'
-    gerrit_change_list = get(changes_api_url)
-    return [Change(gerrit_url, c) for c in gerrit_change_list]
-
-
 def make_changes_url(gerrit_url, query):
     return f'{gerrit_url}/#/q/{query}'
+
+
+class Client:
+
+    def __init__(self, gerrit_url, query):
+        self._gerrit_url = gerrit_url
+        # For +1 and -1 information, LABELS option has to be requested. See:
+        # https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#detailed-labels
+        # for owner name, DETAILED_ACCOUNTS:
+        # https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#detailed-accounts
+        self._changes_api_url = f'{gerrit_url}/changes/?o=LABELS&o=DETAILED_ACCOUNTS&q={query}'
+
+        self.query = query
+        self.changes_url = make_changes_url(gerrit_url, query)
+
+    def get_changes(self):
+        gerrit_change_list = get(self._changes_api_url)
+        return [Change(self._gerrit_url, c) for c in gerrit_change_list]
