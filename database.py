@@ -3,6 +3,7 @@ from typing import NamedTuple
 
 
 class SlackToken(NamedTuple):
+    id: int
     channel: str
     channel_id: str
     webhook_url: str
@@ -17,7 +18,7 @@ class SlackToken(NamedTuple):
 
 
 class Crontab(NamedTuple):
-    # slack_token_id will be automatically determined
+    id: int
     gerrit_query: str
     crontab: str
 
@@ -27,6 +28,7 @@ class Environment(NamedTuple):
     SLACK_CLIENT_SECRET: str
     SLACK_REDIRECT_URI: str
     SECRET_KEY: str
+    GERRIT_URL: str
 
 
 class Database:
@@ -52,9 +54,9 @@ class Database:
 
     def load_crontabs(self):
         cur = self._conn.execute("""
-            SELECT crontabs.id crontab_id, channel, gerrit_query, crontab
-            FROM crontabs
-            JOIN slack_tokens ON crontabs.slack_token_id = slack_tokens.id;
+            SELECT crontabs.id crontab_id, crontab, gerrit_query, webhook_url, channel
+            FROM crontabs JOIN slack_tokens
+            ON crontabs.slack_token_id = slack_tokens.id;
         """)
         return cur.fetchall()
 
@@ -76,18 +78,18 @@ class Database:
         """
         crontab_insert = "INSERT INTO crontabs (slack_token_id, gerrit_query, crontab) VALUES (?, ?, ?);"
         with self._conn:
-            cur = self._conn.execute(slack_insert, slack_token)
-            self._conn.execute(crontab_insert, (cur.lastrowid, *crontab))
+            cur = self._conn.execute(slack_insert, slack_token[1:])
+            self._conn.execute(crontab_insert, (cur.lastrowid, *crontab[1:]))
 
     def delete(self, slack_token_id):
         with self._conn:
             # this will delete with CASCADE, so crontab entries belonging to this will be deleted also
             self._conn.execute('DELETE FROM slack_tokens WHERE id = ?', (slack_token_id,))
 
-    def update_crontab(self, crontab_id, crontab):
+    def update_crontab(self, crontab):
         with self._conn:
             self._conn.execute('UPDATE crontabs SET gerrit_query = ?, crontab = ? WHERE id = ?',
-                               (*crontab, crontab_id))
+                               (crontab.gerrit_query, crontab.crontab, crontab.id))
 
     def load_token_and_channel(self, crontab_id):
         with self._conn:

@@ -1,6 +1,6 @@
 import secrets
+import datetime as dt
 from flask import Flask, request, session, render_template, redirect, url_for, flash, g
-from cronjob import init_crontabs
 from croniter import croniter
 import slack
 from database import Database, SlackToken, Crontab
@@ -54,11 +54,11 @@ def _get_channel():
 
 @app.route('/')
 def index():
-    config = g.db.load_crontabs()
+    crontabs = [(row, croniter(row['crontab'], start_time=dt.datetime.now()).get_next(dt.datetime))
+                for row in g.db.load_crontabs()]
 
     return render_template('index.html',  # noqa
-        config=config,
-        crontabs=init_crontabs(config),
+        crontabs=crontabs,
         has_unfinished_config='webhook_data' in session,
         unfinished_channel=_get_channel(),
         slack_button_url=_make_slack_button_url(),
@@ -72,7 +72,7 @@ def edit(crontab_id):
     if request.method == 'POST' and is_form_valid():
         gerrit_query = request.form['gerrit_query']
         crontab = request.form['crontab']
-        g.db.update_crontab(crontab_id, Crontab(gerrit_query, crontab))
+        g.db.update_crontab(Crontab(crontab_id, gerrit_query, crontab))
         flash('Updated succesfully.', Alert.SUCCESS)
 
     return render_template('edit.html', channel=channel, gerrit_query=gerrit_query, crontab=crontab,
@@ -115,6 +115,7 @@ def save_new_to_db():
 
     wd = session['webhook_data']
     slack_token = SlackToken(
+        None,
         wd['incoming_webhook']['channel'],
         wd['incoming_webhook']['channel_id'],
         wd['incoming_webhook']['url'],
@@ -125,7 +126,7 @@ def save_new_to_db():
         wd['team_name'],
         wd['team_id'],
     )
-    crontab = Crontab(request.form['gerrit_query'], request.form['crontab'])
+    crontab = Crontab(None, request.form['gerrit_query'], request.form['crontab'])
     g.db.save_crontab(slack_token, crontab)
     session.clear()
     flash(f'Config added for {slack_token.channel}', Alert.SUCCESS)
