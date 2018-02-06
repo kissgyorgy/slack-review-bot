@@ -1,9 +1,9 @@
 import secrets
-import datetime as dt
 from flask import Flask, request, session, render_template, redirect, url_for, flash, g
 from croniter import croniter
 import slack
 from database import Database, SlackToken, Crontab
+from bot import CronTime
 
 
 db = Database()
@@ -54,11 +54,8 @@ def _get_channel():
 
 @app.route('/')
 def index():
-    crontabs = [(row, croniter(row['crontab'], start_time=dt.datetime.now()).get_next(dt.datetime))
-                for row in g.db.load_crontabs()]
-
     return render_template('index.html',  # noqa
-        crontabs=crontabs,
+        crontabs=[(row, CronTime(row['crontab'])) for row in g.db.load_crontabs()],
         has_unfinished_config='webhook_data' in session,
         unfinished_channel=_get_channel(),
         slack_button_url=_make_slack_button_url(),

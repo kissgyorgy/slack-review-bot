@@ -72,24 +72,33 @@ class PostableChange:
         return textwrap.shorten(text, width=80, placeholder=' …')
 
 
-class CronJob:
-    def __init__(self, crontab, gerrit_url, gerrit_query, slack_webhook_url, slack_channel):
+class CronTime:
+    def __init__(self, crontab):
         self._crontab = crontab
         # This way, we will miss this very minute at startup to avoid sending the same message twice.
         self._cron = croniter(crontab, start_time=dt.datetime.now())
-        self.calc_next_run()
+        self.calc_next()
 
+    def __str__(self):
+        return self._crontab
+
+    def __repr__(self):
+        return f'CronTime({self._crontab})'
+
+    def calc_next(self):
+        self.next = self._cron.get_next(dt.datetime)
+
+
+class CronJob:
+    def __init__(self, gerrit_url, gerrit_query, slack_webhook_url, slack_channel):
         self._gerrit = gerrit.Client(gerrit_url, gerrit_query)
         self._slack_channel = slack.Channel(slack_webhook_url, slack_channel)
 
     def __str__(self):
-        return f'{self._crontab}: {self._gerrit.query} -> {self._slack_channel}'
+        return f'{self._gerrit.query} -> {self._slack_channel}'
 
     def __repr__(self):
-        return f"CronJob(crontab='{self._crontab}', query='{self._gerrit.query}', channel='{self._slack_channel}')"
-
-    def calc_next_run(self):
-        self.next_run = self._cron.get_next(dt.datetime)
+        return f"CronJob(query='{self._gerrit.query}', channel='{self._slack_channel}')"
 
     def run(self):
         changes = [PostableChange(c) for c in self._gerrit.get_changes()]
@@ -112,7 +121,7 @@ class CronJob:
 def main():
     db = database.Database()
     gerrit_url = db.load_environment().GERRIT_URL
-    crontab = [CronJob(row['crontab'], gerrit_url, row['gerrit_query'], row['webhook_url'], row['channel'])
+    crontab = [(CronTime(row['crontab']), CronJob(gerrit_url, row['gerrit_query'], row['webhook_url'], row['channel']))
                for row in db.load_crontabs()]
     db.close()
     print(crontab)
@@ -122,11 +131,11 @@ def main():
         rounded_now = now.replace(second=0, microsecond=0)
         print(now, 'Checking crontabs to run...')
 
-        for job in crontab:
-            if job.next_run == rounded_now:
+        for cron_time, job in crontab:
+            if cron_time.next == rounded_now:
                 print('Running job...', job)
                 job.run()
-                job.calc_next_run()
+                cron_time.calc_next()
 
         time.sleep(5)
 
