@@ -73,8 +73,9 @@ class Database:
     def save_crontab(self, slack_token, crontab):
         slack_insert = """
             INSERT INTO slack_tokens(
-                channel, channel_id, webhook_url, webhook_config_url, access_token, scope, user_id, team_name, team_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+                channel, channel_id, webhook_url, webhook_config_url, access_token, scope, user_id, team_name, team_id,
+                bot_user_id, bot_access_token
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
         crontab_insert = "INSERT INTO crontabs (slack_token_id, gerrit_query, crontab) VALUES (?, ?, ?);"
         with self._conn:

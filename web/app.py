@@ -122,6 +122,8 @@ def save_new_to_db():
         wd['user_id'],
         wd['team_name'],
         wd['team_id'],
+        wd['bot']['bot_user_id'],
+        wd['bot']['bot_access_token'],
     )
     crontab = Crontab(None, request.form['gerrit_query'], request.form['crontab'])
     g.db.save_crontab(slack_token, crontab)
