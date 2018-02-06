@@ -51,7 +51,7 @@ class Channel:
 
 
 class App:
-    SCOPE = 'incoming-webhook,bot'
+    SCOPE = 'incoming-webhook,commands,bot'
 
     def __init__(self, client_id, client_secret, redirect_uri):
         self._client_id = client_id
