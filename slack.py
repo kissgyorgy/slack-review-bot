@@ -70,10 +70,11 @@ class App:
         return res.json()
 
     def make_button_url(self, state):
-        params = urlencode({
+        params = {
             'scope': self.SCOPE,
             'client_id': self._client_id,
-            'redirect_uri': self._redirect_uri,
             'state': state,
-        })
-        return f'{SLACK_OAUTH_URL}?{params}'
+            'redirect_uri': self._redirect_uri,
+        }
+        encoded_params = urlencode(params, safe=',')
+        return f'{SLACK_OAUTH_URL}?{encoded_params}'
