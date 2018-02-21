@@ -90,9 +90,9 @@ class CronTime:
 
 
 class CronJob:
-    def __init__(self, gerrit_url, gerrit_query, slack_webhook_url, slack_channel):
+    def __init__(self, gerrit_url, gerrit_query, bot_token, slack_channel_id):
         self._gerrit = gerrit.Client(gerrit_url, gerrit_query)
-        self._slack_channel = slack.Channel(slack_webhook_url, slack_channel)
+        self._slack_channel = slack.Channel(bot_token, slack_channel_id)
 
     def __str__(self):
         return f'{self._gerrit.query} -> {self._slack_channel}'
@@ -120,9 +120,16 @@ class CronJob:
 
 def main():
     db = database.Database()
-    gerrit_url = db.load_environment().GERRIT_URL
-    crontab = [(CronTime(row['crontab']), CronJob(gerrit_url, row['gerrit_query'], row['webhook_url'], row['channel']))
-               for row in db.load_crontabs()]
+    environment = db.load_environment()
+    gerrit_url = environment.GERRIT_URL
+    bot_access_token = environment.BOT_ACCESS_TOKEN
+
+    crontab = []
+    for c in db.load_all_crontabs():
+        crontime = CronTime(c.crontab)
+        cronjob = CronJob(gerrit_url, c.gerrit_query, bot_access_token, c.channel_id)
+        crontab.append((crontime, cronjob))
+
     db.close()
     print(crontab)
 
@@ -131,11 +138,11 @@ def main():
         rounded_now = now.replace(second=0, microsecond=0)
         print(now, 'Checking crontabs to run...')
 
-        for cron_time, job in crontab:
-            if cron_time.next == rounded_now:
-                print('Running job...', job)
-                job.run()
-                cron_time.calc_next()
+        for crontime, cronjob in crontab:
+            if crontime.next == rounded_now:
+                print('Running job...', cronjob)
+                cronjob.run()
+                crontime.calc_next()
 
         time.sleep(5)
 

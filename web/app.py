@@ -1,8 +1,7 @@
-import secrets
 from flask import Flask, request, session, render_template, redirect, url_for, flash, g
 from croniter import croniter
 import slack
-from database import Database, SlackToken, Crontab
+from database import Database, Crontab
 from bot import CronTime
 
 
@@ -14,6 +13,7 @@ app = Flask(__name__)
 app.secret_key = env.SECRET_KEY
 
 slack_app = slack.App(env.SLACK_CLIENT_ID, env.SLACK_CLIENT_SECRET, env.SLACK_REDIRECT_URI)
+slack_api = slack.Api(env.BOT_ACCESS_TOKEN)
 
 
 class Alert:
@@ -38,70 +38,14 @@ def after_request(response):
     return response
 
 
-def _make_slack_button_url():
-    # if the state is different we got from oauth authorization, we should refuse the token, because
-    # probably a third-party generated it. For details, see https://api.slack.com/docs/slack-button
-    session['oauth_state'] = secrets.token_urlsafe(32)
-    return slack_app.make_button_url(session['oauth_state'])
-
-
-def _get_channel():
-    try:
-        return session['webhook_data']['incoming_webhook']['channel']
-    except KeyError:
-        return None
-
-
 @app.route('/')
 def index():
-    return render_template('index.html',  # noqa
-        crontabs=[(row, CronTime(row['crontab'])) for row in g.db.load_crontabs()],
-        has_unfinished_config='webhook_data' in session,
-        unfinished_channel=_get_channel(),
-        slack_button_url=_make_slack_button_url(),
-    )
-
-
-@app.route('/edit/<int:crontab_id>', methods=['GET', 'POST'])
-def edit(crontab_id):
-    channel, gerrit_query, crontab = g.db.load_crontab(crontab_id)
-
-    if request.method == 'POST' and is_form_valid():
-        gerrit_query = request.form['gerrit_query']
-        crontab = request.form['crontab']
-        g.db.update_crontab(Crontab(crontab_id, gerrit_query, crontab))
-        flash('Updated succesfully.', Alert.SUCCESS)
-
-    return render_template('edit.html', channel=channel, gerrit_query=gerrit_query, crontab=crontab,
-                           crontab_id=crontab_id)
+    return render_template('index.html', crontabs=g.db.load_all_crontabs())
 
 
 @app.route('/new', methods=['GET'])
 def new():
-    if 'webhook_data' not in session:
-        return redirect(_make_slack_button_url())
-
-    return render_template('new.html', channel=_get_channel(), invalid_form=session.get('invalid_form', None))
-
-
-def is_form_valid():
-    gerrit_query_data = request.form['gerrit_query']
-    crontab_data = request.form['crontab']
-    is_valid = True
-
-    if not gerrit_query_data:
-        flash('You need to have a gerrit query.', Alert.DANGER)
-        is_valid = False
-
-    if not crontab_data:
-        flash('You need to fill out the crontab entry.', Alert.DANGER)
-        is_valid = False
-
-    elif not croniter.is_valid(crontab_data):
-        flash('Invalid crontab syntax.', Alert.DANGER)
-        is_valid = False
-
-    return is_valid
+    return render_template('new.html', invalid_form=session.get('invalid_form', None))
 
 
 @app.route('/new', methods=['POST'])
@@ -110,51 +54,55 @@ def save_new_to_db():
         session['invalid_form'] = request.form
         return redirect(url_for('new'))
 
-    wd = session['webhook_data']
-    slack_token = SlackToken(
-        None,
-        wd['incoming_webhook']['channel'],
-        wd['incoming_webhook']['channel_id'],
-        wd['incoming_webhook']['url'],
-        wd['incoming_webhook']['configuration_url'],
-        wd['access_token'],
-        wd['scope'],
-        wd['user_id'],
-        wd['team_name'],
-        wd['team_id'],
-        wd['bot']['bot_user_id'],
-        wd['bot']['bot_access_token'],
-    )
-    crontab = Crontab(None, request.form['gerrit_query'], request.form['crontab'])
-    g.db.save_crontab(slack_token, crontab)
+    f = request.form
+    channel_id = '5'
+
+    crontab = Crontab(None, f['channel_name'], channel_id, f['gerrit_query'], f['crontab'])
+    g.db.save_crontab(crontab)
     session.clear()
-    flash(f'Config added for {slack_token.channel}', Alert.SUCCESS)
+    flash(f'Config added for {crontab.channel_name}', Alert.SUCCESS)
     return redirect('/')
 
 
-@app.route('/delete-unfinished', methods=['POST'])
-def delete_unfinished():
-    res = slack.revoke_token(session['webhook_data']['access_token'])
-    if not res.ok or not res.json()['ok']:
-        flash('Unknown error revoking access token!', Alert.DANGER)
-        return redirect('/')
+@app.route('/edit/<int:crontab_id>', methods=['GET', 'POST'])
+def edit(crontab_id):
+    crontab = g.db.load_crontab(crontab_id)
 
-    session.clear()
-    flash(f'Deleted unfinished request for {_get_channel()}, you can add a new channel now.', Alert.WARNING)
-    return redirect('/')
+    if request.method == 'POST' and is_form_valid():
+        channel_name = request.form['channel_name']
+        gerrit_query = request.form['gerrit_query']
+        crontab_entry = request.form['crontab']
+        crontab = Crontab(crontab_id, channel_name, crontab.channel_id, gerrit_query, crontab_entry)
+        g.db.update_crontab(crontab)
+        flash('Updated succesfully.', Alert.SUCCESS)
+
+    return render_template('edit.html', crontab=crontab)
+
+
+def is_form_valid():
+    gerrit_query_data = request.form['gerrit_query']
+    crontab_data = request.form['crontab']
+
+    if not gerrit_query_data:
+        flash('You need to have a gerrit query.', Alert.DANGER)
+        return False
+
+    if not crontab_data:
+        flash('You need to fill out the crontab entry.', Alert.DANGER)
+        return False
+
+    elif not croniter.is_valid(crontab_data):
+        flash('Invalid crontab syntax.', Alert.DANGER)
+        return False
+
+    return True
 
 
 @app.route('/delete/<int:crontab_id>', methods=['POST'])
-def delete_existing(crontab_id):
-    access_token, channel, slack_token_id = g.db.load_token_and_channel(crontab_id)
-    res = slack.revoke_token(access_token)
-    if not res.ok or not res.json()['ok']:
-        print(res.json())
-        flash('Unknown error revoking access token!', Alert.DANGER)
-        return redirect('/')
-
-    g.db.delete(slack_token_id)
-    flash(f'Succesfully removed bot from {channel}', Alert.SUCCESS)
+def delete(crontab_id):
+    crontab = g.db.load_crontab(crontab_id)
+    g.db.delete_crontab(crontab_id)
+    flash(f'Succesfully removed bot from {crontab.channel_name}', Alert.SUCCESS)
     return redirect('/')
 
 

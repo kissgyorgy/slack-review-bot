@@ -1,4 +1,3 @@
-from urllib.parse import urlencode
 import requests
 
 
@@ -37,21 +36,63 @@ def revoke_token(token):
     return requests.post(SLACK_API_URL + '/auth.revoke', {'token': token})
 
 
+class Api:
+    def __init__(self, token):
+        self._token = token
+
+    def _get(self, method, fields=None):
+        payload = {'token': self._token}
+        if fields is not None:
+            payload.update(fields)
+        return requests.get(f'{SLACK_API_URL}/{method}', payload)
+
+    def list_channels(self):
+        return self._get('channels.list').json()
+
+    def list_groups(self):
+        return self._get('groups.list').json()
+
+    def get_channel_id(self, channel_name):
+        name = channel_name.lstrip('#')
+        return self._public_channel(name) or self._private_channel(name) or None
+
+    def _public_channel(self, name):
+        for channel in self.list_channels()['channels']:
+            if channel['name'] == name:
+                return channel['id']
+
+    def _private_channel(self, name):
+        for group in self.list_groups()['groups']:
+            if group['name'] == name:
+                return group['id']
+
+
 class Channel:
-    def __init__(self, webhook_url, channel):
-        self._webhook_url = webhook_url
-        self._channel = channel
+    def __init__(self, bot_token, channel_id):
+        self._bot_token = bot_token
+        self._channel_id = channel_id
 
     def __str__(self):
-        return self._channel
+        return self._channel_id
 
-    def post(self, text, attachments):
-        payload = {'text': text, 'attachments': attachments, 'channel': self._channel}
-        return requests.post(self._webhook_url, json=payload)
+    def _post(self, method, fields=None):
+        payload = {'token': self._bot_token, 'channel': self._channel_id}
+        if fields is not None:
+            payload.update(fields)
+        return requests.post(f'{SLACK_API_URL}/{method}', payload)
+
+    def info(self):
+        return self._get('channels.info')
+
+    def delete_message(self, ts):
+        return self._post('chat.delete', {'ts': ts})
+
+    def post_message(self, text, attachments):
+        return self._post('chat.postMessage', {'text': text, 'attachments': attachments})
 
 
 class App:
-    SCOPE = 'incoming-webhook,commands,bot'
+    SCOPE = 'commands,bot'
 
     def __init__(self, client_id, client_secret, redirect_uri):
         self._client_id = client_id
@@ -68,13 +109,3 @@ class App:
         })
         # example in slack_messages/oauth.access.json
         return res.json()
-
-    def make_button_url(self, state):
-        params = {
-            'scope': self.SCOPE,
-            'client_id': self._client_id,
-            'state': state,
-            'redirect_uri': self._redirect_uri,
-        }
-        encoded_params = urlencode(params, safe=',')
-        return f'{SLACK_OAUTH_URL}?{encoded_params}'
