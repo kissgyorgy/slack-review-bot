@@ -90,9 +90,11 @@ class CronTime:
 
 
 class CronJob:
-    def __init__(self, gerrit_url, gerrit_query, bot_token, slack_channel_id):
+    def __init__(self, gerrit_url, gerrit_query, bot_token, slack_channel_id, db):
         self._gerrit = gerrit.Client(gerrit_url, gerrit_query)
         self._slack_channel = slack.Channel(bot_token, slack_channel_id)
+        self._slack_channel_id = slack_channel_id
+        self._db = db
 
     def __str__(self):
         return f'{self._gerrit.query} -> {self._slack_channel}'
@@ -105,17 +107,31 @@ class CronJob:
         if not changes:
             return True
 
-        summary_text = f'{len(changes)} patch vár review-ra:'
-        summary_link = slack.make_link(self._gerrit.changes_url, summary_text)
-        attachments = [slack.make_attachment(c.color, c.full_message(), c.url) for c in changes]
-
-        res = self._slack_channel.post(summary_link, attachments)
-        if not res.ok:
-            print(f'{res.status_code} error requesting {res.url} for channel {self._channel}:',
+        res = self._post_to_slack(changes)
+        if res.ok:
+            self._delete_sent_messages()
+            print('GOT RESPONSE', res.text)
+            json_res = res.json()
+            message = database.SentMessage(json_res['message']['ts'], json_res['channel'], json_res['message']['text'])
+            self._db.save_sent_message(message)
+        else:
+            print(f'{res.status_code} error requesting {res.url} for channel {self._slack_channel}:',
                   res.text, file=sys.stderr)
             return False
 
         return True
+
+    def _post_to_slack(self, changes):
+        summary_text = f'{len(changes)} patch vár review-ra:'
+        summary_link = slack.make_link(self._gerrit.changes_url, summary_text)
+        attachments = [slack.make_attachment(c.color, c.full_message(), c.url) for c in changes]
+        return self._slack_channel.post_message(summary_link, attachments)
+
+    def _delete_sent_messages(self):
+        for m in self._db.load_sent_messages(self._slack_channel_id):
+            res = self._slack_channel.delete_message(m.ts)
+            if res.ok and res.json()['ok']:
+                self._db.delete_sent_message(m)
 
 
 def main():
@@ -127,10 +143,9 @@ def main():
     crontab = []
     for c in db.load_all_crontabs():
         crontime = CronTime(c.crontab)
-        cronjob = CronJob(gerrit_url, c.gerrit_query, bot_access_token, c.channel_id)
+        cronjob = CronJob(gerrit_url, c.gerrit_query, bot_access_token, c.channel_id, db)
         crontab.append((crontime, cronjob))
 
-    db.close()
     print(crontab)
 
     while True:

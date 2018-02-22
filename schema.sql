@@ -14,3 +14,10 @@ CREATE TABLE environment (
   name TEXT UNIQUE,
   value TEXT
 );
+
+
+CREATE TABLE sent_messages (
+  ts TEXT PRIMARY KEY,
+  channel_id TEXT,
+  text TEXT
+);
