@@ -139,11 +139,17 @@ class CronJob:
 
 
 def main():
+def load_db():
+    print('Loading settings and crontabs from db...')
     db = database.Database()
     environment = db.load_environment()
     gerrit_url = environment.GERRIT_URL
     bot_access_token = environment.BOT_ACCESS_TOKEN
+    return db, gerrit_url, bot_access_token
 
+
+def make_crontab(db, gerrit_url, bot_access_token):
+    print('Crontabs:')
     crontab = []
     for c in db.load_all_crontabs():
         crontime = CronTime(c.crontab)
@@ -151,8 +157,17 @@ def main():
         crontab.append((crontime, cronjob))
 
     print(crontab)
+    return crontab
+
+
+def main():
+    print('Started main')
+    should_reload.set()
 
     while True:
+            db, gerrit_url, bot_access_token = load_db()
+            crontab = make_crontab(db, gerrit_url, bot_access_token)
+
         now = dt.datetime.now()
         rounded_now = now.replace(second=0, microsecond=0)
         print(now, 'Checking crontabs to run...')
