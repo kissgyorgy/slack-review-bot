@@ -66,10 +66,12 @@ class PostableChange:
             return '#EC1313'
 
     def full_message(self):
-        text = f'CR: {self.code_review_icon} V: {self.verified_icon} - {self.username}: {self.subject}'
-        # Slack wraps lines around 80? width, so if we cut out here explicitly,
-        # every patch will fit in one line
-        return textwrap.shorten(text, width=80, placeholder=' …')
+        text = f'CR: {self.code_review_icon} V: {self.verified_icon} {self.username}: {self.subject}'
+        # we count every icon as one character long
+        icon_lenghts = len(self.code_review_icon) + len(self.verified_icon)
+        # Slack wraps lines around this width, so if we cut out here explicitly,
+        # every patch will fit in one line.
+        return textwrap.shorten(text, width=76+icon_lenghts-2, placeholder='…')
 
 
 class CronTime:
