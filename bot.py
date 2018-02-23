@@ -107,6 +107,8 @@ class CronJob:
     def run(self):
         changes = [PostableChange(c) for c in self._gerrit.get_changes()]
         if not changes:
+            self._delete_sent_messages()
+            print('No changes')
             return True
 
         res = self._post_to_slack(changes)
