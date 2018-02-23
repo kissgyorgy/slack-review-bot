@@ -36,16 +36,25 @@ def revoke_token(token):
     return requests.post(SLACK_API_URL + '/auth.revoke', {'token': token})
 
 
-class Api:
+class _ApiBase:
     def __init__(self, token):
         self._token = token
 
-    def _get(self, method, fields=None):
-        payload = {'token': self._token}
-        if fields is not None:
-            payload.update(fields)
-        return requests.get(f'{SLACK_API_URL}/{method}', payload)
+    def _get(self, method, payload=None):
+        headers = {'Authorization': 'Bearer ' + self._token}
+        return requests.get(f'{SLACK_API_URL}/{method}', payload, headers=headers)
 
+    def _post(self, method, payload=None):
+        print('Sending things', payload)
+        headers = {
+            'Authorization': 'Bearer ' + self._token,
+            # Slack needs a charset, otherwise it will send a warning in every response...
+            'Content-Type': 'application/json; charset=utf-8',
+        }
+        return requests.post(f'{SLACK_API_URL}/{method}', headers=headers, json=payload)
+
+
+class Api(_ApiBase):
     def list_channels(self):
         return self._get('channels.list').json()
 
@@ -67,19 +76,20 @@ class Api:
                 return group['id']
 
 
-class Channel:
+class Channel(_ApiBase):
     def __init__(self, bot_token, channel_id):
-        self._bot_token = bot_token
+        super().__init__(bot_token)
         self._channel_id = channel_id
 
     def __str__(self):
         return self._channel_id
 
-    def _post(self, method, fields=None):
-        payload = {'token': self._bot_token, 'channel': self._channel_id}
-        if fields is not None:
-            payload.update(fields)
-        return requests.post(f'{SLACK_API_URL}/{method}', payload)
+    def _get(self, method):
+        return super()._get(method, {'channel': self._channel_id})
+
+    def _post(self, method, payload):
+        payload.update({'channel': self._channel_id})
+        return super()._post(method, payload)
 
     def info(self):
         return self._get('channels.info')
