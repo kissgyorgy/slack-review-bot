@@ -4,7 +4,9 @@ import sys
 import time
 import textwrap
 import datetime as dt
+import threading
 from croniter import croniter
+import uwsgi
 import slack
 import gerrit
 import database
@@ -138,7 +140,27 @@ class CronJob:
                 self._db.delete_sent_message(m)
 
 
-def main():
+class MuleMessage:
+    RELOAD = b'reload'
+    RESTART = b'restart'
+    SEND_NOW = b'send_now'
+
+
+should_reload = threading.Event()
+
+
+class WaitForMessages(threading.Thread):
+    daemon = True
+
+    def run(self):
+        while True:
+            print('Waiting for messages...')
+            message = uwsgi.mule_get_msg()
+            if message == MuleMessage.RELOAD:
+                print('Got reload message.')
+                should_reload.set()
+
+
 def load_db():
     print('Loading settings and crontabs from db...')
     db = database.Database()
@@ -165,8 +187,11 @@ def main():
     should_reload.set()
 
     while True:
+        if should_reload.is_set():
+            print('Reloading...')
             db, gerrit_url, bot_access_token = load_db()
             crontab = make_crontab(db, gerrit_url, bot_access_token)
+            should_reload.clear()
 
         now = dt.datetime.now()
         rounded_now = now.replace(second=0, microsecond=0)
@@ -182,4 +207,5 @@ def main():
 
 
 if __name__ == '__main__':
+    WaitForMessages().start()
     main()

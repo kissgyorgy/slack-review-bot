@@ -1,8 +1,9 @@
 from flask import Flask, request, session, render_template, redirect, url_for, flash, g
 from croniter import croniter
+import uwsgi
 import slack
 from database import Database, Crontab
-from bot import CronTime
+from bot import CronTime, MuleMessage
 
 
 db = Database()
@@ -55,12 +56,14 @@ def save_new_to_db():
         return redirect(url_for('new'))
 
     f = request.form
-    channel_id = '5'
-
+    # TODO: cache the channels.info result for faster lookup
+    channel_id = slack_api.get_channel_id(f['channel_name'])
     crontab = Crontab(None, f['channel_name'], channel_id, f['gerrit_query'], f['crontab'])
     g.db.save_crontab(crontab)
+
     session.clear()
     flash(f'Config added for {crontab.channel_name}', Alert.SUCCESS)
+    uwsgi.mule_msg(MuleMessage.RELOAD)
     return redirect('/')
 
 
@@ -75,6 +78,7 @@ def edit(crontab_id):
         crontab = Crontab(crontab_id, channel_name, crontab.channel_id, gerrit_query, crontab_entry)
         g.db.update_crontab(crontab)
         flash('Updated succesfully.', Alert.SUCCESS)
+        uwsgi.mule_msg(MuleMessage.RELOAD)
 
     return render_template('edit.html', crontab=crontab)
 
@@ -103,6 +107,7 @@ def delete(crontab_id):
     crontab = g.db.load_crontab(crontab_id)
     g.db.delete_crontab(crontab_id)
     flash(f'Succesfully removed bot from {crontab.channel_name}', Alert.SUCCESS)
+    uwsgi.mule_msg(MuleMessage.RELOAD)
     return redirect('/')
 
 
