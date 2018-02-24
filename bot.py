@@ -114,10 +114,9 @@ class CronJob:
             return True
 
         res = self._post_to_slack(changes)
-        if res.ok:
+        json_res = res.json()
+        if res.ok and json_res['ok']:
             self._delete_sent_messages()
-            print('GOT RESPONSE', res.text)
-            json_res = res.json()
             message = database.SentMessage(json_res['message']['ts'], json_res['channel'], json_res['message']['text'])
             self._db.save_sent_message(message)
         else:
