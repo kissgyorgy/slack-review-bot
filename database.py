@@ -11,6 +11,7 @@ class Crontab(NamedTuple):
 
 
 class SentMessage(NamedTuple):
+    crontab_id: int
     ts: str
     channel_id: str
     text: str
@@ -68,13 +69,14 @@ class Database:
         with self._conn:
             self._conn.execute('DELETE FROM crontabs WHERE crontabs.id = ?', (crontab_id,))
 
-    def load_sent_messages(self, slack_channel_id):
-        cur = self._conn.execute('SELECT * FROM sent_messages WHERE sent_messages.channel_id = ?;', (slack_channel_id,))
+    def load_sent_messages(self, crontab_id):
+        cur = self._conn.execute('SELECT * FROM sent_messages WHERE sent_messages.crontab_id = ?;', (crontab_id,))
         return (SentMessage(**r) for r in cur.fetchall())
 
     def save_sent_message(self, message):
         with self._conn:
-            self._conn.execute('INSERT INTO sent_messages (ts, channel_id, text) VALUES (?, ?, ?);', message)
+            self._conn.execute('INSERT INTO sent_messages (crontab_id, ts, channel_id, text) VALUES (?, ?, ?, ?);',
+                               message)
 
     def delete_sent_message(self, message):
         with self._conn:

@@ -94,10 +94,10 @@ class CronTime:
 
 
 class CronJob:
-    def __init__(self, gerrit_url, gerrit_query, bot_token, slack_channel_id, db):
+    def __init__(self, gerrit_url, gerrit_query, bot_token, slack_channel_id, crontab_id, db):
         self._gerrit = gerrit.Client(gerrit_url, gerrit_query)
         self._slack_channel = slack.Channel(bot_token, slack_channel_id)
-        self._slack_channel_id = slack_channel_id
+        self._crontab_id = crontab_id
         self._db = db
 
     def __str__(self):
@@ -115,14 +115,16 @@ class CronJob:
 
         res = self._post_to_slack(changes)
         json_res = res.json()
-        if res.ok and json_res['ok']:
-            self._delete_sent_messages()
-            message = database.SentMessage(json_res['message']['ts'], json_res['channel'], json_res['message']['text'])
-            self._db.save_sent_message(message)
-        else:
+        if not res.ok or not json_res['ok']:
             print(f'{res.status_code} error requesting {res.url} for channel {self._slack_channel}:',
                   res.text, file=sys.stderr)
             return False
+
+        self._delete_sent_messages()
+
+        jsm = json_res['message']
+        message = database.SentMessage(self._crontab_id, jsm['ts'], json_res['channel'], jsm['text'])
+        self._db.save_sent_message(message)
 
         return True
 
@@ -133,7 +135,7 @@ class CronJob:
         return self._slack_channel.post_message(summary_link, attachments)
 
     def _delete_sent_messages(self):
-        for m in self._db.load_sent_messages(self._slack_channel_id):
+        for m in self._db.load_sent_messages(self._crontab_id):
             res = self._slack_channel.delete_message(m.ts)
             if res.ok and res.json()['ok']:
                 self._db.delete_sent_message(m)
@@ -174,7 +176,7 @@ def make_crontab(db, gerrit_url, bot_access_token):
     crontab = []
     for c in db.load_all_crontabs():
         crontime = CronTime(c.crontab)
-        cronjob = CronJob(gerrit_url, c.gerrit_query, bot_access_token, c.channel_id, db)
+        cronjob = CronJob(gerrit_url, c.gerrit_query, bot_access_token, c.channel_id, c.id, db)
         crontab.append((crontime, cronjob))
 
     print(crontab)

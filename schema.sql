@@ -17,7 +17,9 @@ CREATE TABLE environment (
 
 
 CREATE TABLE sent_messages (
+  crontab_id INTEGER,
   ts TEXT PRIMARY KEY,
   channel_id TEXT,
-  text TEXT
+  text TEXT,
+  FOREIGN KEY(crontab_id) REFERENCES crontabs(id)
 );
