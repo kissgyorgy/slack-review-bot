@@ -84,22 +84,29 @@ def edit(crontab_id):
 
 
 def is_form_valid():
+    channel_name = request.form['channel_name']
     gerrit_query_data = request.form['gerrit_query']
     crontab_data = request.form['crontab']
 
+    is_valid = True
+
+    if not channel_name.startswith(('@', '#')):
+        flash('The channel name should start with @ or #.')
+        is_valid = False
+
     if not gerrit_query_data:
         flash('You need to have a gerrit query.', Alert.DANGER)
-        return False
+        is_valid = False
 
     if not crontab_data:
         flash('You need to fill out the crontab entry.', Alert.DANGER)
-        return False
+        is_valid = False
 
     elif not croniter.is_valid(crontab_data):
         flash('Invalid crontab syntax.', Alert.DANGER)
-        return False
+        is_valid = False
 
-    return True
+    return is_valid
 
 
 @app.route('/delete/<int:crontab_id>', methods=['POST'])
