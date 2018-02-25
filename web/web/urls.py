@@ -21,5 +21,6 @@ from slackbot import views
 urlpatterns = [
     path('', views.HomeView.as_view(), name='home'),
     path('new/', views.NewCrontabView.as_view(), name='new'),
+    path('usage/', views.UsageView.as_view(), name='usage'),
     path('admin/', admin.site.urls),
 ]
