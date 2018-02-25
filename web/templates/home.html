@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+
+{% block content %}
+  <div class="row">
+    <div class="col-6 text-left">
+      <a href="{% url 'new' %}">Add new</a>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">Slack #channel</th>
+            <th scope="col">Gerrit query</th>
+            <th scope="col">Crontab entry</th>
+            {# <th scope="col">Next run</th> #}
+          </tr>
+        </thead>
+        <tbody>
+          {% for crontab in crontabs %}
+            <tr>
+              <td>
+                {# <a href="{{ url_for('edit', crontab_id=crontab.id) }}"> #}
+                  {{ crontab.channel_name }}
+                {# </a> #}
+              </td>
+              <td>
+                {# <a href="{{ url_for('edit', crontab_id=crontab.id) }}"> #}
+                  <pre>{{ crontab.gerrit_query }}</pre>
+                {# </a> #}
+              </td>
+              <td>
+                {# <a href="{{ url_for('edit', crontab_id=crontab.id) }}"> #}
+                  <pre>{{ crontab.crontab }}</pre>
+                {# </a> #}
+              </td>
+              {# <td>{{ cron_time.next }}</td> #}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+{% endblock content %}
