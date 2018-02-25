@@ -27,10 +27,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
-# Application definition
-
 INSTALLED_APPS = [
+    # django apps
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -42,7 +40,11 @@ INSTALLED_APPS = [
     'constance',
     'constance.backends.database',
     'crispy_forms',
+
+    # custom apps
+    'slackbot.apps.SlackbotConfig',
 ]
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -128,3 +130,26 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
+
+CONSTANCE_BACKEND = 'constance.backends.database.DatabaseBackend'
+CONSTANCE_CONFIG = {
+    'SLACK_CLIENT_ID': ('xxxxxxxxxxxx.xxxxxxxxxxxx', 'Slack client id from slack website'),
+    'SLACK_CLIENT_SECRET': ('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'Slack client secret from slack website'),
+    'SLACK_REDIRECT_URI': (' http://website/redirect-url', 'Redirect url'),
+    'GERRIT_URL': ('https://gerrit.instance.url', 'main URL for gerrit instance'),
+    'ACCESS_TOKEN': ('xoxp-xxxxxxxxxxxx-xxxxxxxxxxxx-xxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+                     'User access token got from OAuth flow. Starts with xoxp-'),
+    'SCOPE': ('identify,bot,commands', 'Scope got after OAuth redirect'),
+    'USER_ID': ('UXXXXXXXX', 'Slack user ID who installed slackbot to the Slack workspace'),
+    'TEAM_NAME': ('Workspace', 'Slack workspace the slackbot is installed to'),
+    'TEAM_ID': ('TXXXXXXXX', 'Slack team ID where the bot is installed to'),
+    'BOT_USER_ID': ('UXXXXXXXX', 'Slack bot user ID'),
+    'BOT_ACCESS_TOKEN': ('xoxb-xxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxx',
+                         'Slack bot access token. Starts with xoxb-'),
+}
+CONSTANCE_CONFIG_FIELDSETS = {
+    'Slack client': ('SLACK_CLIENT_ID', 'SLACK_CLIENT_SECRET', 'SLACK_REDIRECT_URI'),
+    'Slack permissions': ('BOT_USER_ID', 'BOT_ACCESS_TOKEN', 'SCOPE', 'ACCESS_TOKEN'),
+    'Gerrit': ('GERRIT_URL',),
+    'Slack good to know': ('USER_ID', 'TEAM_NAME', 'TEAM_ID'),
+}
