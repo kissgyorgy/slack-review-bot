@@ -1,3 +1,39 @@
+import datetime as dt
+from croniter import croniter
 from django.db import models
 
-# Create your models here.
+
+class Crontab(models.Model):
+    channel_name = models.CharField(max_length=100)
+    channel_id = models.CharField(max_length=30)
+    gerrit_query = models.CharField(max_length=255)
+    crontab = models.CharField(max_length=255)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(self, *args, **kwargs)
+        # This way, we will miss this very minute at startup to avoid sending the same message twice.
+        self._cron = croniter(self.crontab, start_time=dt.datetime.now())
+
+    def __str__(self):
+        return f'{self.crontab}: {self.gerrit_query} -> {self.channel_name}'
+
+    def calc_next(self):
+        self.next = self._cron.get_next(dt.datetime)
+
+
+class SentMessage(models.Model):
+    crontab = models.ForeignKey(Crontab, on_delete=models.SET_NULL, related_name='sent_messages',
+                                blank=True, null=True)
+
+    ts = models.CharField(max_length=30)
+    channel_id = models.CharField(max_length=30)
+    message = models.TextField(help_text='JSON serialized slack response "message" field to a chat.PostMessage')
+
+    def __str__(self):
+        return self.ts
+
+
+class MuleMessage:
+    RELOAD = b'reload'
+    RESTART = b'restart'
+    SEND_NOW = b'send_now'

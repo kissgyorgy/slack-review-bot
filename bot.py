@@ -5,7 +5,6 @@ import time
 import textwrap
 import datetime as dt
 import threading
-from croniter import croniter
 import uwsgi
 from constance import config
 import slack
@@ -78,23 +77,6 @@ class PostableChange:
         return textwrap.shorten(text, width=76+icon_lenghts-2, placeholder='…')
 
 
-class CronTime:
-    def __init__(self, crontab):
-        self._crontab = crontab
-        # This way, we will miss this very minute at startup to avoid sending the same message twice.
-        self._cron = croniter(crontab, start_time=dt.datetime.now())
-        self.calc_next()
-
-    def __str__(self):
-        return self._crontab
-
-    def __repr__(self):
-        return f'CronTime({self._crontab})'
-
-    def calc_next(self):
-        self.next = self._cron.get_next(dt.datetime)
-
-
 class CronJob:
     def __init__(self, gerrit_url, gerrit_query, bot_token, slack_channel_id, crontab_id):
         self._gerrit = gerrit.Client(gerrit_url, gerrit_query)
@@ -137,10 +119,15 @@ class CronJob:
         return self._slack_channel.post_message(summary_link, attachments)
 
     def _delete_sent_messages(self):
+        print('Deleting messages')
         for sm in SentMessage.objects.filter(crontab_id=self._crontab_id):
             res = self._slack_channel.delete_message(str(sm.ts))
             if res.ok and res.json()['ok']:
+                print('Deleting message', sm.ts)
                 sm.delete()
+            else:
+                print(f'{res.status_code} error requesting {res.url} for channel {self._slack_channel}:',
+                      res.text, file=sys.stderr)
 
 
 class MuleMessage:
@@ -164,16 +151,15 @@ class WaitForMessages(threading.Thread):
                 should_reload.set()
 
 
-def make_crontab():
+def make_crontabs():
     print('Loading settings and crontabs from db...')
-    crontab = []
+    crontabs = []
     for c in Crontab.objects.all():
-        crontime = CronTime(c.crontab)
         cronjob = CronJob(config.GERRIT_URL, c.gerrit_query, config.BOT_ACCESS_TOKEN, c.channel_id, c.id)
-        crontab.append((crontime, cronjob))
+        crontabs.append((c, cronjob))
     print('Crontabs:')
-    print(crontab)
-    return crontab
+    print(crontabs)
+    return crontabs
 
 
 def main():
@@ -183,18 +169,18 @@ def main():
     while True:
         if should_reload.is_set():
             print('Reloading...')
-            crontab = make_crontab()
+            crontabs = make_crontabs()
             should_reload.clear()
 
         now = dt.datetime.now()
         rounded_now = now.replace(second=0, microsecond=0)
         print(now, 'Checking crontabs to run...')
 
-        for crontime, cronjob in crontab:
-            if crontime.next == rounded_now:
+        for crontab, cronjob in crontabs:
+            if crontab.next == rounded_now:
                 print('Running job...', cronjob)
                 cronjob.run()
-                crontime.calc_next()
+                crontab.calc_next()
 
         time.sleep(5)
 

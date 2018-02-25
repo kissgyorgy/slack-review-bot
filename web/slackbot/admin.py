@@ -1,3 +1,6 @@
 from django.contrib import admin
+from .models import Crontab, SentMessage
 
-# Register your models here.
+
+admin.site.register(Crontab)
+admin.site.register(SentMessage)
