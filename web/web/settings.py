@@ -35,8 +35,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django.contrib.sites',
-    'django.contrib.flatpages',
 
     # third-party apps
     'constance',
@@ -47,7 +45,6 @@ INSTALLED_APPS = [
     'slackbot.apps.SlackbotConfig',
 ]
 
-SITE_ID = 1
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
