@@ -7,9 +7,11 @@ import datetime as dt
 import threading
 from croniter import croniter
 import uwsgi
+from constance import config
 import slack
 import gerrit
-import database
+import django
+from slackbot.models import Crontab, SentMessage
 
 
 class PostableChange:
@@ -94,11 +96,10 @@ class CronTime:
 
 
 class CronJob:
-    def __init__(self, gerrit_url, gerrit_query, bot_token, slack_channel_id, crontab_id, db):
+    def __init__(self, gerrit_url, gerrit_query, bot_token, slack_channel_id, crontab_id):
         self._gerrit = gerrit.Client(gerrit_url, gerrit_query)
         self._slack_channel = slack.Channel(bot_token, slack_channel_id)
         self._crontab_id = crontab_id
-        self._db = db
 
     def __str__(self):
         return f'{self._gerrit.query} -> {self._slack_channel}'
@@ -123,8 +124,9 @@ class CronJob:
         self._delete_sent_messages()
 
         jsm = json_res['message']
-        message = database.SentMessage(self._crontab_id, jsm['ts'], json_res['channel'], jsm['text'])
-        self._db.save_sent_message(message)
+
+        sm = SentMessage(crontab_id=self._crontab_id, ts=jsm['ts'], channel_id=json_res['channel'], message=jsm)
+        sm.save()
 
         return True
 
@@ -135,10 +137,10 @@ class CronJob:
         return self._slack_channel.post_message(summary_link, attachments)
 
     def _delete_sent_messages(self):
-        for m in self._db.load_sent_messages(self._crontab_id):
-            res = self._slack_channel.delete_message(m.ts)
+        for sm in SentMessage.objects.filter(crontab_id=self._crontab_id):
+            res = self._slack_channel.delete_message(str(sm.ts))
             if res.ok and res.json()['ok']:
-                self._db.delete_sent_message(m)
+                sm.delete()
 
 
 class MuleMessage:
@@ -162,23 +164,14 @@ class WaitForMessages(threading.Thread):
                 should_reload.set()
 
 
-def load_db():
+def make_crontab():
     print('Loading settings and crontabs from db...')
-    db = database.Database()
-    environment = db.load_environment()
-    gerrit_url = environment.GERRIT_URL
-    bot_access_token = environment.BOT_ACCESS_TOKEN
-    return db, gerrit_url, bot_access_token
-
-
-def make_crontab(db, gerrit_url, bot_access_token):
-    print('Crontabs:')
     crontab = []
-    for c in db.load_all_crontabs():
+    for c in Crontab.objects.all():
         crontime = CronTime(c.crontab)
-        cronjob = CronJob(gerrit_url, c.gerrit_query, bot_access_token, c.channel_id, c.id, db)
+        cronjob = CronJob(config.GERRIT_URL, c.gerrit_query, config.BOT_ACCESS_TOKEN, c.channel_id, c.id)
         crontab.append((crontime, cronjob))
-
+    print('Crontabs:')
     print(crontab)
     return crontab
 
@@ -190,8 +183,7 @@ def main():
     while True:
         if should_reload.is_set():
             print('Reloading...')
-            db, gerrit_url, bot_access_token = load_db()
-            crontab = make_crontab(db, gerrit_url, bot_access_token)
+            crontab = make_crontab()
             should_reload.clear()
 
         now = dt.datetime.now()
@@ -208,5 +200,7 @@ def main():
 
 
 if __name__ == '__main__':
+    django.setup()
+    print(Crontab.objects.all())
     WaitForMessages().start()
     main()
