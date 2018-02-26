@@ -1,6 +1,5 @@
 #!/usr/bin/env python3.6
 
-import sys
 import time
 import textwrap
 import datetime as dt
@@ -78,10 +77,10 @@ class PostableChange:
 
 
 class CronJob:
-    def __init__(self, gerrit_url, gerrit_query, bot_token, slack_channel_id, crontab_id):
-        self._gerrit = gerrit.Client(gerrit_url, gerrit_query)
-        self._slack_channel = slack.Channel(bot_token, slack_channel_id)
-        self._crontab_id = crontab_id
+    def __init__(self, gerrit_url, bot_access_token, crontab):
+        self._gerrit = gerrit.Client(gerrit_url, crontab.gerrit_query)
+        self._slack_channel = slack.Channel(bot_access_token, crontab.channel_id)
+        self._crontab = crontab
 
     def __str__(self):
         return f'{self._gerrit.query} -> {self._slack_channel}'
@@ -92,25 +91,18 @@ class CronJob:
     def run(self):
         changes = [PostableChange(c) for c in self._gerrit.get_changes()]
         if not changes:
-            self._delete_sent_messages()
+            self._delete_previous_messages()
             print('No changes')
-            return True
+            return
 
         res = self._post_to_slack(changes)
         json_res = res.json()
         if not res.ok or not json_res['ok']:
-            print(f'{res.status_code} error requesting {res.url} for channel {self._slack_channel}:',
-                  res.text, file=sys.stderr)
-            return False
+            print(f'{res.status_code} error sending message for channel {self._slack_channel}: {res.text}')
+            return
 
-        self._delete_sent_messages()
-
-        jsm = json_res['message']
-
-        sm = SentMessage(crontab_id=self._crontab_id, ts=jsm['ts'], channel_id=json_res['channel'], message=jsm)
-        sm.save()
-
-        return True
+        self._delete_previous_messages()
+        self._save_message(json_res)
 
     def _post_to_slack(self, changes):
         summary_text = f'{len(changes)} patch vár review-ra:'
@@ -118,7 +110,6 @@ class CronJob:
         attachments = [slack.make_attachment(c.color, c.full_message(), c.url) for c in changes]
         return self._slack_channel.post_message(summary_link, attachments)
 
-    def _delete_sent_messages(self):
         print('Deleting messages')
         for sm in SentMessage.objects.filter(crontab_id=self._crontab_id):
             res = self._slack_channel.delete_message(str(sm.ts))
@@ -128,6 +119,11 @@ class CronJob:
             else:
                 print(f'{res.status_code} error requesting {res.url} for channel {self._slack_channel}:',
                       res.text, file=sys.stderr)
+    def _delete_previous_messages(self):
+    def _save_message(self, json_res):
+        jsm = json_res['message']
+        sm = SentMessage(crontab=self._crontab, ts=jsm['ts'], channel_id=json_res['channel'], message=jsm)
+        sm.save()
 
 
 class MuleMessage:
@@ -151,15 +147,18 @@ class WaitForMessages(threading.Thread):
                 should_reload.set()
 
 
-def make_crontabs():
+def make_cronjobs():
     print('Loading settings and crontabs from db...')
-    crontabs = []
-    for c in Crontab.objects.all():
-        cronjob = CronJob(config.GERRIT_URL, c.gerrit_query, config.BOT_ACCESS_TOKEN, c.channel_id, c.id)
-        crontabs.append((c, cronjob))
-    print('Crontabs:')
-    print(crontabs)
-    return crontabs
+    gerrit_url = config.GERRIT_URL
+    bot_access_token = config.BOT_ACCESS_TOKEN
+
+    cronjobs = []
+    for crontab in Crontab.objects.all():
+        cronjob = CronJob(gerrit_url, bot_access_token, crontab)
+        cronjobs.append((crontab, cronjob))
+
+    print('Cronjobs:', cronjobs)
+    return cronjobs
 
 
 def main():
@@ -169,14 +168,14 @@ def main():
     while True:
         if should_reload.is_set():
             print('Reloading...')
-            crontabs = make_crontabs()
+            cronjobs = make_cronjobs()
             should_reload.clear()
 
         now = dt.datetime.now()
         rounded_now = now.replace(second=0, microsecond=0)
         print(now, 'Checking crontabs to run...')
 
-        for crontab, cronjob in crontabs:
+        for crontab, cronjob in cronjobs:
             if crontab.next == rounded_now:
                 print('Running job...', cronjob)
                 cronjob.run()
