@@ -32,6 +32,11 @@
       <span class="navbar-text">
         <a class="nav-link" href="{% url 'usage' %}">Usage, notations</a>
       </span>
+      {% if request.user.is_superuser %}
+        <span class="navbar-text">
+          <a class="nav-link" href="{% url 'admin:index' %}">Admin</a>
+        </span>
+      {% endif %}
     </div>
   </nav>
 
