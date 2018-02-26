@@ -10,9 +10,15 @@ class Crontab(models.Model):
     crontab = models.CharField(max_length=255)
 
     def __init__(self, *args, **kwargs):
-        super().__init__(self, *args, **kwargs)
-        # This way, we will miss this very minute at startup to avoid sending the same message twice.
-        self._cron = croniter(self.crontab, start_time=dt.datetime.now())
+        super().__init__(*args, **kwargs)
+        # This is a new, empty object, there is no crontab value set yet
+        if self.pk is None:
+            self._cron = None
+            self.next = None
+        else:
+            # This way, we will miss this very minute at startup to avoid sending the same message twice
+            self._cron = croniter(self.crontab, start_time=dt.datetime.now())
+            self.calc_next()
 
     def __str__(self):
         return f'{self.crontab}: {self.gerrit_query} -> {self.channel_name}'
