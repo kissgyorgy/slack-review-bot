@@ -1,4 +1,5 @@
 import requests
+from urllib.parse import urlencode
 
 
 class Emoji:
@@ -119,3 +120,13 @@ class App:
         })
         # example in slack_messages/oauth.access.json
         return res.json()
+
+    def make_button_url(self, state):
+        params = {
+            'scope': self.SCOPE,
+            'client_id': self._client_id,
+            'state': state,
+            'redirect_uri': self._redirect_uri,
+        }
+        encoded_params = urlencode(params, safe=',')
+        return f'{SLACK_OAUTH_URL}?{encoded_params}'

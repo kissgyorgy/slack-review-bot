@@ -4,7 +4,7 @@
 {% block content %}
   <div class="row">
     <div class="col-6 text-left">
-      <a href="{{ url_for('new') }}">Add new</a>
+      {# <a href="{% url 'new' %}">Add new</a> #}
     </div>
   </div>
 
@@ -23,19 +23,19 @@
           {% for crontab in crontabs %}
             <tr>
               <td>
-                <a href="{{ url_for('edit', crontab_id=crontab.id) }}">
+                {# <a href="{{ url_for('edit', crontab_id=crontab.id) }}"> #}
                   {{ crontab.channel_name }}
-                </a>
+                {# </a> #}
               </td>
               <td>
-                <a href="{{ url_for('edit', crontab_id=crontab.id) }}">
+                {# <a href="{{ url_for('edit', crontab_id=crontab.id) }}"> #}
                   <pre>{{ crontab.gerrit_query }}</pre>
-                </a>
+                {# </a> #}
               </td>
               <td>
-                <a href="{{ url_for('edit', crontab_id=crontab.id) }}">
+                {# <a href="{{ url_for('edit', crontab_id=crontab.id) }}"> #}
                   <pre>{{ crontab.crontab }}</pre>
-                </a>
+                {# </a> #}
               </td>
               {# <td>{{ cron_time.next }}</td> #}
             </tr>
