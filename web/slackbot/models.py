@@ -46,6 +46,15 @@ class SentMessage(models.Model):
     def __str__(self):
         return self.ts
 
+    def delete(self, *args, **kwargs):
+        slack_channel = slack.Channel(config.BOT_ACCESS_TOKEN, self.channel_id)
+        res = slack_channel.delete_message(self.ts)
+        if res.ok and res.json()['ok']:
+            print(f'Deleting message {self.ts} from channel {self.channel_id}')
+            return super().delete(*args, **kwargs)
+        else:
+            print(f'{res.status_code} error deleting {self.ts} for channel {self._slack_channel}: {res.text}')
+
 
 class MuleMessage:
     RELOAD = b'reload'

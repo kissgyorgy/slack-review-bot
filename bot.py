@@ -110,16 +110,11 @@ class CronJob:
         attachments = [slack.make_attachment(c.color, c.full_message(), c.url) for c in changes]
         return self._slack_channel.post_message(summary_link, attachments)
 
-        print('Deleting messages')
-        for sm in SentMessage.objects.filter(crontab_id=self._crontab_id):
-            res = self._slack_channel.delete_message(str(sm.ts))
-            if res.ok and res.json()['ok']:
-                print('Deleting message', sm.ts)
-                sm.delete()
-            else:
-                print(f'{res.status_code} error requesting {res.url} for channel {self._slack_channel}:',
-                      res.text, file=sys.stderr)
     def _delete_previous_messages(self):
+        for sm in SentMessage.objects.filter(crontab=self._crontab):
+            # we need to delete one by one, because it's posting chat.delete to slack
+            sm.delete()
+
     def _save_message(self, json_res):
         jsm = json_res['message']
         sm = SentMessage(crontab=self._crontab, ts=jsm['ts'], channel_id=json_res['channel'], message=jsm)
