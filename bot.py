@@ -182,7 +182,7 @@ def main():
                 cronjob.run()
                 crontab.calc_next()
 
-        time.sleep(5)
+        time.sleep(50)
 
 
 if __name__ == '__main__':
