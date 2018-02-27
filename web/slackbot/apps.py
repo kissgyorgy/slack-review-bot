@@ -2,13 +2,13 @@ from django.apps import AppConfig
 from django.db.models.signals import post_save, post_delete
 try:
     import uwsgi
-    from bot import MuleMessage
     is_uwsgi_running = True
 except ImportError:
     is_uwsgi_running = False
 
 
 def reload_mule(sender, **kwargs):
+    from bot import MuleMessage
     uwsgi.mule_msg(MuleMessage.RELOAD)
 
 
