@@ -99,8 +99,8 @@ class CronJob:
         if json_res is None:
             return
 
-        self._delete_previous_messages()
-        self._save_message(json_res)
+        just_sent = self._save_message(json_res)
+        self._delete_previous_messages(just_sent)
 
     def _post_to_slack(self, changes):
         summary_text = f'{len(changes)} patch vár review-ra:'
@@ -108,8 +108,9 @@ class CronJob:
         attachments = [slack.make_attachment(c.color, c.full_message(), c.url) for c in changes]
         return self._slack_channel.post_message(summary_link, attachments)
 
-    def _delete_previous_messages(self):
-        for sm in SentMessage.objects.filter(crontab=self._crontab):
+    def _delete_previous_messages(self, just_sent):
+        for sm in SentMessage.objects.filter(crontab=self._crontab)\
+                                     .exclude(pk=just_sent.pk):
             # we need to delete one by one, because it's posting chat.delete to slack
             sm.delete()
 
@@ -117,6 +118,7 @@ class CronJob:
         jsm = json_res['message']
         sm = SentMessage(crontab=self._crontab, ts=jsm['ts'], channel_id=json_res['channel'], message=jsm)
         sm.save()
+        return sm
 
 
 class MuleMessage:

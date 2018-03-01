@@ -64,14 +64,20 @@ class SentMessage(models.Model):
     def __str__(self):
         return self.ts
 
-    def delete(self, *args, **kwargs):
+    def _delete_slack_channel(self):
+        print(f'Deleting message {self.ts} from channel {self.channel_id}')
         slack_channel = slack.Channel(config.BOT_ACCESS_TOKEN, self.channel_id)
-        res = slack_channel.delete_message(self.ts)
-        if res.ok and res.json()['ok']:
-            print(f'Deleting message {self.ts} from channel {self.channel_id}')
+        return slack_channel.delete_message(self.ts)
+
+    def delete(self, *args, **kwargs):
+        res_json = self._delete_slack_channel()
+        if res_json is not None:
             return super().delete(*args, **kwargs)
-        else:
-            print(f'{res.status_code} error deleting {self.ts} for channel {self._slack_channel}: {res.text}')
+        return 0, {'slackbot.SentMessage': 0}
+
+    def force_delete(self, *args, **kwargs):
+        self._delete_slack_channel()
+        return super().delete(*args, **kwargs)
 
 
 class MuleMessage:
