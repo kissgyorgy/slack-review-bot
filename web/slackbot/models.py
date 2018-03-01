@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from croniter import croniter
 from constance import config
 import slack
+from .channels import get_channel_id
 
 
 class Crontab(models.Model):
@@ -37,11 +38,13 @@ class Crontab(models.Model):
         if not self.channel_name.startswith('#'):
             errors.update({'channel_name': 'Channel name should start with "#".'})
         else:
-            slack_api = slack.Api(config.BOT_ACCESS_TOKEN)
-            # TODO: cache the channels.info result for faster lookup
-            channel_id = slack_api.get_channel_id(self.channel_name)
+            channel_id = get_channel_id(self.channel_name)
             if channel_id is None:
-                errors.update({'channel_name': 'There is no such Slack channel'})
+                errors.update({'channel_name': "Slack channel name not found. <br>"
+                                               "You have to invite Slackbot to the channel if it's private <br>"
+                                               "Or you might just mistyped the channel name."})
+            else:
+                self.channel_id = channel_id
 
         if errors:
             raise ValidationError(errors)

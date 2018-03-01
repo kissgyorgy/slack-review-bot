@@ -89,6 +89,16 @@ DATABASES = {
     }
 }
 
+CACHES = {
+    'channels': {
+        'BACKEND': 'uwsgicache.UWSGICache',
+        'LOCATION': 'channels',
+    }
+}
+
+# This is needed so you can start the shell... because from there you can't access uWSGI
+# this will fall back to django.core.cache.backends.locmem.LocMemCache
+UWSGI_CACHE_FALLBACK = True
 
 # Password validation
 # https://docs.djangoproject.com/en/2.0/ref/settings/#auth-password-validators
