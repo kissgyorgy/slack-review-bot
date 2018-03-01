@@ -40,41 +40,56 @@ def revoke_token(token):
 class _ApiBase:
     def __init__(self, token):
         self._token = token
+        self._auth_headers = {'Authorization': 'Bearer ' + token}
+
+    def _make_json_res(self, res, method, payload):
+        json_res = res.json()
+        if res.ok and json_res['ok']:
+            return json_res
+        else:
+            print(f'Error {res.status_code} during {method} {res.request.method} request: {res.text}\n'
+                  f'payload: {payload}')
+            return
 
     def _get(self, method, payload=None):
-        headers = {'Authorization': 'Bearer ' + self._token}
-        return requests.get(f'{SLACK_API_URL}/{method}', payload, headers=headers)
+        print('Request', method, payload)
+        res = requests.get(f'{SLACK_API_URL}/{method}', payload, headers=self._auth_headers)
+        return self._make_json_res(res, method, payload)
+
+    def _get_all(self, method, field, payload):
+        rv = []
+        while True:
+            json_res = self._get(method, payload)
+            if json_res is None:
+                return
+            rv.extend(json_res[field])
+            next_cursor = json_res.get('response_metadata', {}).get('next_cursor')
+            print('Next cursor:', next_cursor or type(next_cursor))
+            if not next_cursor:
+                return rv
+            payload['cursor'] = next_cursor
 
     def _post(self, method, payload=None):
-        print('Sending things', payload)
+        print('Posting to', method, payload)
         headers = {
-            'Authorization': 'Bearer ' + self._token,
+            **self._auth_headers,
             # Slack needs a charset, otherwise it will send a warning in every response...
             'Content-Type': 'application/json; charset=utf-8',
         }
-        return requests.post(f'{SLACK_API_URL}/{method}', headers=headers, json=payload)
+        res = requests.post(f'{SLACK_API_URL}/{method}', headers=headers, json=payload)
+        return self._make_json_res(res, method, payload)
 
 
 class Api(_ApiBase):
-    def list_channels(self):
-        return self._get('channels.list').json()
-
-    def list_groups(self):
-        return self._get('groups.list').json()
+    def list_all_channels(self):
+        payload = {'types': 'public_channel,private_channel'}
+        return self._get_all('conversations.list', 'channels', payload)
 
     def get_channel_id(self, channel_name):
         name = channel_name.lstrip('#')
-        return self._public_channel(name) or self._private_channel(name) or None
-
-    def _public_channel(self, name):
-        for channel in self.list_channels()['channels']:
+        for channel in self.list_all_channels():
             if channel['name'] == name:
                 return channel['id']
-
-    def _private_channel(self, name):
-        for group in self.list_groups()['groups']:
-            if group['name'] == name:
-                return group['id']
 
 
 class Channel(_ApiBase):

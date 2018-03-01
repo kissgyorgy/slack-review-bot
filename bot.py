@@ -95,10 +95,8 @@ class CronJob:
             print('No changes')
             return
 
-        res = self._post_to_slack(changes)
-        json_res = res.json()
-        if not res.ok or not json_res['ok']:
-            print(f'{res.status_code} error sending message for channel {self._slack_channel}: {res.text}')
+        json_res = self._post_to_slack(changes)
+        if json_res is None:
             return
 
         self._delete_previous_messages()
