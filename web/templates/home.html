@@ -16,7 +16,7 @@
             <th scope="col">Slack #channel</th>
             <th scope="col">Gerrit query</th>
             <th scope="col">Crontab entry</th>
-            {# <th scope="col">Next run</th> #}
+            <th scope="col">Next run</th>
           </tr>
         </thead>
         <tbody>
@@ -37,7 +37,7 @@
                   <pre>{{ crontab.crontab }}</pre>
                 {# </a> #}
               </td>
-              {# <td>{{ cron_time.next }}</td> #}
+              <td>{{ crontab.next }}</td>
             </tr>
           {% endfor %}
         </tbody>
