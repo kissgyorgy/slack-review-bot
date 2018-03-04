@@ -137,8 +137,8 @@ class WaitForMessages(threading.Thread):
         while True:
             print('Waiting for messages...')
             message = uwsgi.mule_get_msg()
+            print(f'Got {message!s} message.')
             if message == MuleMessage.RELOAD:
-                print('Got reload message.')
                 should_reload.set()
 
 

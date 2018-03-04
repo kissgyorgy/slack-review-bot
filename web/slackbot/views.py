@@ -4,12 +4,12 @@ from django.contrib import messages
 from django.shortcuts import redirect
 from django.core.exceptions import SuspiciousOperation
 from constance import config
-from .models import Crontab
+from . import models as m
 import slack
 
 
 class HomeView(generic.ListView):
-    model = Crontab
+    model = m.Crontab
     context_object_name = 'crontabs'
     template_name = 'home.html'
 
@@ -18,9 +18,9 @@ class UsageView(generic.TemplateView):
     template_name = 'usage.html'
 
 
-class NewCrontabView(generic.CreateView):
-    model = Crontab
     fields = ('channel_name', 'gerrit_query', 'crontab')
+class CrontabCreateView(generic.CreateView):
+    model = m.Crontab
     template_name = 'crontab_form.html'
     success_url = '/'
 
