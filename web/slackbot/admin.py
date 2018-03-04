@@ -9,5 +9,9 @@ class CrontabAdmin(admin.ModelAdmin):
         model = Crontab
 
 
+class SentMessageAdmin(admin.ModelAdmin):
+    list_display = ('ts', 'channel_id', 'crontab')
+
+
 admin.site.register(Crontab, CrontabAdmin)
-admin.site.register(SentMessage)
+admin.site.register(SentMessage, SentMessageAdmin)
