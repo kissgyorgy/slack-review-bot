@@ -75,6 +75,8 @@ TEMPLATES = [
         'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
+            'debug': True,
+            'string_if_invalid': 'HIBA',
             'context_processors': [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
