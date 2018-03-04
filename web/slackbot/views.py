@@ -3,9 +3,16 @@ from django.db import transaction
 from django.contrib import messages
 from django.shortcuts import redirect
 from django.core.exceptions import SuspiciousOperation
+from django.views.decorators.http import require_POST
 from constance import config
-from . import models as m
 import slack
+from . import models as m
+
+try:
+    import bot
+except ImportError:
+    # manage.py commands need to run without uwsgi
+    pass
 
 
 class HomeView(generic.ListView):
@@ -23,6 +30,19 @@ class CrontabCreateView(generic.CreateView):
     model = m.Crontab
     template_name = 'crontab_form.html'
     success_url = '/'
+
+
+@require_POST
+def pause_bot(request):
+    bot.pause()
+    return redirect('/')
+
+
+@require_POST
+def resume_bot(request):
+    bot.resume()
+    messages.info(request, 'Bot resumed')
+    return redirect('/')
 
 
 @transaction.atomic

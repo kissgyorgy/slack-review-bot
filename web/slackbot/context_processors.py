@@ -1,5 +1,6 @@
 import secrets
 from django.conf import settings
+import uwsgi
 from constance import config
 import slack
 
@@ -22,3 +23,7 @@ def slack_button(request):
         'slack_button_url': slack_app.make_button_url(request.session['oauth_state']),
         'is_bot_configured': False,
     }
+
+
+def is_bot_paused(request):
+    return {'is_bot_paused': uwsgi.is_locked()}

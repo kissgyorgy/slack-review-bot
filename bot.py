@@ -123,11 +123,27 @@ class CronJob:
 
 class MuleMessage:
     RELOAD = b'reload'
-    RESTART = b'restart'
-    SEND_NOW = b'send_now'
 
 
 should_reload = threading.Event()
+
+
+def pause():
+    uwsgi.lock()
+
+
+def resume():
+    uwsgi.unlock()
+
+
+def block_if_paused():
+    was_locked = uwsgi.is_locked()
+    if was_locked:
+        print('Bot is paused, waiting for resume...')
+    uwsgi.lock()
+    uwsgi.unlock()
+    if was_locked:
+        print('Resuming...')
 
 
 class WaitForMessages(threading.Thread):
@@ -161,6 +177,8 @@ def main():
     should_reload.set()
 
     while True:
+        block_if_paused()
+
         if should_reload.is_set():
             print('Reloading...')
             cronjobs = make_cronjobs()

@@ -79,6 +79,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'slackbot.context_processors.is_bot_paused',
                 'slackbot.context_processors.slack_button',
             ],
         },

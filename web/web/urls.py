@@ -23,5 +23,7 @@ urlpatterns = [
     path('new/', views.CrontabCreateView.as_view(), name='new'),
     path('slack-oauth/', views.slack_oauth, name='slack_oauth'),
     path('usage/', views.UsageView.as_view(), name='usage'),
+    path('pause/', views.pause_bot, name='pause'),
+    path('resume/', views.resume_bot, name='resume'),
     path('admin/', admin.site.urls),
 ]
