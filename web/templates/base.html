@@ -26,11 +26,13 @@
         </li>
       </ul>
       {% if request.user.is_superuser %}
-        <span class="navbar-text">
-          <a href="{{ slack_button_url }}">
-            <img alt="Add to Slack" height="40" width="139" src="https://platform.slack-edge.com/img/add_to_slack.png" srcset="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x" />
-          </a>
-        </span>
+        {% if not is_bot_configured %}
+          <span class="navbar-text">
+            <a href="{{ slack_button_url }}">
+              <img alt="Add to Slack" height="40" width="139" src="https://platform.slack-edge.com/img/add_to_slack.png" srcset="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x" />
+            </a>
+          </span>
+        {% endif %}
       {% endif %}
       <span class="navbar-text">
         <a class="nav-link" href="{% url 'usage' %}">Usage, notations</a>

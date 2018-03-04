@@ -79,7 +79,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'slackbot.context_processors.slack_button_url',
+                'slackbot.context_processors.slack_button',
             ],
         },
     },
@@ -157,6 +157,8 @@ MESSAGE_TAGS = {
     message_constants.ERROR: 'alert-danger'
 }
 
+BOT_ACCESS_TOKEN_DEFAULT = 'xoxb-xxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxx'
+
 CONSTANCE_BACKEND = 'constance.backends.database.DatabaseBackend'
 CONSTANCE_CONFIG = {
     'SLACK_CLIENT_ID': ('xxxxxxxxxxxx.xxxxxxxxxxxx', 'Slack client id from slack website'),
@@ -170,8 +172,7 @@ CONSTANCE_CONFIG = {
     'TEAM_NAME': ('Workspace', 'Slack workspace the slackbot is installed to'),
     'TEAM_ID': ('TXXXXXXXX', 'Slack team ID where the bot is installed to'),
     'BOT_USER_ID': ('UXXXXXXXX', 'Slack bot user ID'),
-    'BOT_ACCESS_TOKEN': ('xoxb-xxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxx',
-                         'Slack bot access token. Starts with xoxb-'),
+    'BOT_ACCESS_TOKEN': (BOT_ACCESS_TOKEN_DEFAULT, 'Slack bot access token. Starts with xoxb-'),
 }
 CONSTANCE_CONFIG_FIELDSETS = {
     'Slack client': ('SLACK_CLIENT_ID', 'SLACK_CLIENT_SECRET', 'SLACK_REDIRECT_URI'),
