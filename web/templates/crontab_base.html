@@ -3,15 +3,10 @@
 {% load widget_tweaks %}
 
 
-{% block title %}
-  add new channel
-{% endblock %}
-
-
 {% block content %}
 <div class="row justify-content-center">
   <div class="col-md-10">
-    <form method="post" action="{% url 'new' %}">
+      <form method="post" action="">
       {% csrf_token %}
 
       <div class="form-row">
@@ -59,16 +54,7 @@
         <small class="form-text text-muted">{{ form.crontab.help_text|safe }}</small>
       </div>
 
-      <div class="form-group row">
-        <div class="col">
-          <button type="submit" class="btn btn-primary">Add bot to channel</button>
-        </div>
-        <div class="col">
-          <a href="/" class="btn btn-secondary float-right"> Cancel </a>
-        </div>
-      </div>
-
-      {# {% endwith %} #}
+      {% block buttons %} {% endblock %}
 
     </form>
   </div>

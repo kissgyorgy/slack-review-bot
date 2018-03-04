@@ -7,16 +7,18 @@ from .channels import get_channel_id
 from . import models as m
 
 
-class CrontabCreateForm(forms.ModelForm):
-    class Meta:
-        model = m.Crontab
-        fields = ('channel_name', 'channel_id', 'gerrit_query', 'crontab')
-
+class CrontabFieldMixin:
     def clean_crontab(self):
         crontab = self.cleaned_data['crontab']
         if not croniter.is_valid(crontab):
             raise forms.ValidationError('Invalid crontab format')
         return crontab
+
+
+class CrontabCreateForm(CrontabFieldMixin, forms.ModelForm):
+    class Meta:
+        model = m.Crontab
+        fields = ('channel_name', 'channel_id', 'gerrit_query', 'crontab')
 
     def clean(self):
         cleaned_data = super().clean()
@@ -55,3 +57,11 @@ class CrontabCreateForm(forms.ModelForm):
                 cleaned_data['channel_name'] = '@' + res['user']['profile']['display_name']
 
         return cleaned_data
+
+
+# We already got the channel_name and channel_id, we
+# only need to check crontab syntax and gerrit query
+class CrontabEditForm(CrontabFieldMixin, forms.ModelForm):
+    class Meta:
+        model = m.Crontab
+        fields = ('gerrit_query', 'crontab')

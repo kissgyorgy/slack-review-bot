@@ -29,8 +29,28 @@ class UsageView(generic.TemplateView):
 class CrontabCreateView(generic.CreateView):
     model = m.Crontab
     form_class = f.CrontabCreateForm
-    template_name = 'crontab_form.html'
+    template_name = 'new_crontab.html'
     success_url = '/'
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Crontab has been created')
+        return super().form_valid(form)
+
+
+class CrontabEditView(generic.UpdateView):
+    model = m.Crontab
+    template_name = 'edit_crontab.html'
+    form_class = f.CrontabEditForm
+    success_url = '/'
+
+
+class CrontabDeleteView(generic.DeleteView):
+    model = m.Crontab
+    success_url = '/'
+
+    def get_success_url(self):
+        messages.info(self.request, f'Crontab "{self.object}" has been deleted')
+        return super().get_success_url()
 
 
 @require_POST

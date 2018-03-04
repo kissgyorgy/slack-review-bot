@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% load widget_tweaks %}
+
+
+{% block title %}
+  edit channel
+{% endblock %}
+
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-10">
+      <form method="post" action="">
+      {% csrf_token %}
+
+      <div class="form-row">
+        <div class="form-group col-md-5">
+          <label for="{{ form.channel_name.id_for_label }}">#channel</label>
+          <input class="form-control" type="text" value="{{ crontab.channel_name }}" disabled>
+          <div class="invalid-feedback"> {{ form.channel_name.errors }} </div>
+        </div>
+
+        <div class="col-md-1 align-bottom"> OR </div>
+
+        <div class="form-group col-md-6">
+          <label for="{{ form.channel_id.id_for_label }}">User ID</label>
+          <input class="form-control" type="text" value="{{ crontab.channel_id }}" disabled>
+          <div class="invalid-feedback"> {{ form.channel_id.errors }} </div>
+        </div>
+      </div>
+
+
+      <div class="form-group">
+        <label for="{{ form.gerrit_query.id_for_label }}">Gerrit query</label>
+        {% with WIDGET_ERROR_CLASS='is-invalid' %}
+          {% render_field form.gerrit_query class+="form-control" placeholder="status:open" %}
+        {% endwith %}
+        <div class="invalid-feedback"> {{ form.gerrit_query.errors }} </div>
+        <small class="form-text text-muted">{{ form.gerrit_query.help_text|safe }}</small>
+      </div>
+
+
+      <div class="form-group">
+        <label for="{{ form.crontab.id_for_label }}">Crontab</label>
+        {% with WIDGET_ERROR_CLASS='is-invalid' %}
+          {% render_field form.crontab class+="form-control" placeholder="0 9-18 * * mon-fri" %}
+        {% endwith %}
+        <div class="invalid-feedback"> {{ form.crontab.errors }} </div>
+        <small class="form-text text-muted">{{ form.crontab.help_text|safe }}</small>
+      </div>
+
+      <div class="form-group row">
+        <div class="col">
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+        <div class="col">
+          <a id="delete-button" href="/" class="btn btn-danger float-right"> Delete </a>
+        </div>
+
+      </div>
+
+    </form>
+
+    {# This is here because forms cannot be nested, but deletion is on a different endpoint. #}
+    <form id="delete-form" action="{% url 'delete' crontab.pk %}" method="post">
+      {% csrf_token %}
+    </form>
+
+  </div>
+</div>
+
+
+{% endblock %}
+
+
+{% block js %}
+  <script>
+    $( "#delete-button" ).click(function(event) {
+      event.preventDefault();
+      $( "#delete-form" ).submit();
+    });
+  </script>
+{% endblock %}

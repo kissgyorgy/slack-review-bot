@@ -23,19 +23,13 @@
           {% for crontab in crontabs %}
             <tr>
               <td>
-                {# <a href="{{ url_for('edit', crontab_id=crontab.id) }}"> #}
-                  {{ crontab.channel_name }}
-                {# </a> #}
+                <a href="{% url 'edit' crontab.pk %}"> {{ crontab.channel_name }} </a>
               </td>
               <td>
-                {# <a href="{{ url_for('edit', crontab_id=crontab.id) }}"> #}
-                  <pre>{{ crontab.gerrit_query }}</pre>
-                {# </a> #}
+                <a href="{% url 'edit' crontab.pk %}"> <pre>{{ crontab.gerrit_query }}</pre> </a>
               </td>
               <td>
-                {# <a href="{{ url_for('edit', crontab_id=crontab.id) }}"> #}
-                  <pre>{{ crontab.crontab }}</pre>
-                {# </a> #}
+                <a href="{% url 'edit' crontab.pk %}"> <pre>{{ crontab.crontab }}</pre> </a>
               </td>
               <td>{{ crontab.next }}</td>
             </tr>
