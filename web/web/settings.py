@@ -99,7 +99,7 @@ DATABASES = {
 }
 
 CACHES = {
-    'channels': {
+    'default': {
         'BACKEND': 'uwsgicache.UWSGICache',
         'LOCATION': 'channels',
     }
