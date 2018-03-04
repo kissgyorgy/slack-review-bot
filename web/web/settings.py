@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'constance',
     'constance.backends.database',
     'crispy_forms',
+    'widget_tweaks',
 
     # custom apps
     'slackbot.apps.SlackbotConfig',

@@ -7,6 +7,7 @@ from django.views.decorators.http import require_POST
 from constance import config
 import slack
 from . import models as m
+from . import forms as f
 
 try:
     import bot
@@ -25,9 +26,9 @@ class UsageView(generic.TemplateView):
     template_name = 'usage.html'
 
 
-    fields = ('channel_name', 'gerrit_query', 'crontab')
 class CrontabCreateView(generic.CreateView):
     model = m.Crontab
+    form_class = f.CrontabCreateForm
     template_name = 'crontab_form.html'
     success_url = '/'
 

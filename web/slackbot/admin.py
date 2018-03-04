@@ -3,7 +3,6 @@ from .models import Crontab, SentMessage
 
 
 class CrontabAdmin(admin.ModelAdmin):
-    readonly_fields = ('channel_id',)
 
     class Meta:
         model = Crontab

@@ -1,14 +1,12 @@
 import datetime as dt
 from django.db import models
-from django.core.exceptions import ValidationError
 from croniter import croniter
 from constance import config
 import slack
-from .channels import get_channel_id
 
 
 class Crontab(models.Model):
-    channel_name = models.CharField(max_length=100)
+    channel_name = models.CharField(max_length=100, blank=True)
     channel_id = models.CharField(max_length=30, blank=True, help_text='Slack internal channel ID, will be '
                                                                        'automatically set based on channel_name')
     gerrit_query = models.CharField(max_length=255)
@@ -28,26 +26,6 @@ class Crontab(models.Model):
 
     def __str__(self):
         return f'{self.crontab}: {self.gerrit_query} -> {self.channel_name}'
-
-    def clean(self):
-        errors = {}
-
-        if not croniter.is_valid(self.crontab):
-            errors.update({'crontab': 'Invalid crontab format'})
-
-        if not self.channel_name.startswith('#'):
-            errors.update({'channel_name': 'Channel name should start with "#".'})
-        else:
-            channel_id = get_channel_id(self.channel_name)
-            if channel_id is None:
-                errors.update({'channel_name': "Slack channel name not found. <br>"
-                                               "You have to invite Slackbot to the channel if it's private <br>"
-                                               "Or you might just mistyped the channel name."})
-            else:
-                self.channel_id = channel_id
-
-        if errors:
-            raise ValidationError(errors)
 
     def calc_next(self):
         self.next = self._cron.get_next(dt.datetime)

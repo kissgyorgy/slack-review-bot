@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% load crispy_forms_tags %}
+{% load widget_tweaks %}
 
 
 {% block title %}
@@ -9,20 +9,68 @@
 
 
 {% block content %}
-  <form method="post" action="{% url 'new' %}">
-    {% csrf_token %}
+<div class="row justify-content-center">
+  <div class="col-md-10">
+    <form method="post" action="{% url 'new' %}">
+      {% csrf_token %}
 
-    {{ form|crispy }}
+      <div class="form-row">
+        <div class="form-group col-md-5">
+          <label for="{{ form.channel_name.id_for_label }}">#channel</label>
+          {% with WIDGET_ERROR_CLASS='is-invalid' %}
+            {% render_field form.channel_name class+="form-control" placeholder="#bb-best-team" %}
+          {% endwith %}
+          <div class="invalid-feedback"> {{ form.channel_name.errors }} </div>
+          <small class="form-text text-muted">{{ form.channel_name.help_text|safe }}</small>
+        </div>
 
-    <div class="row">
-      <div class="col-6">
-        <button type="submit" class="btn btn-primary">Add bot to channel </button>
+        <div class="col-md-1 align-bottom">
+          <label for=""></label>
+          OR
+        </div>
+
+        <div class="form-group col-md-6">
+          <label for="{{ form.channel_id.id_for_label }}">User ID</label>
+          {% with WIDGET_ERROR_CLASS='is-invalid' %}
+            {% render_field form.channel_id class+="form-control" placeholder="U1234567" %}
+          {% endwith %}
+          <div class="invalid-feedback"> {{ form.channel_id.errors }} </div>
+          <small class="form-text text-muted">Slack user ID</small>
+        </div>
       </div>
-      <div class="col-6">
-        <a href="/" class="btn btn-secondary float-right"> Cancel </a>
+
+
+      <div class="form-group">
+        <label for="{{ form.gerrit_query.id_for_label }}">Gerrit query</label>
+        {% with WIDGET_ERROR_CLASS='is-invalid' %}
+          {% render_field form.gerrit_query class+="form-control" placeholder="status:open" %}
+        {% endwith %}
+        <div class="invalid-feedback"> {{ form.gerrit_query.errors }} </div>
+        <small class="form-text text-muted">{{ form.gerrit_query.help_text|safe }}</small>
       </div>
-    </div>
 
-  </form>
 
+      <div class="form-group">
+        <label for="{{ form.crontab.id_for_label }}">Crontab</label>
+        {% with WIDGET_ERROR_CLASS='is-invalid' %}
+          {% render_field form.crontab class+="form-control" placeholder="0 9-18 * * mon-fri" %}
+        {% endwith %}
+        <div class="invalid-feedback"> {{ form.crontab.errors }} </div>
+        <small class="form-text text-muted">{{ form.crontab.help_text|safe }}</small>
+      </div>
+
+      <div class="form-group row">
+        <div class="col">
+          <button type="submit" class="btn btn-primary">Add bot to channel</button>
+        </div>
+        <div class="col">
+          <a href="/" class="btn btn-secondary float-right"> Cancel </a>
+        </div>
+      </div>
+
+      {# {% endwith %} #}
+
+    </form>
+  </div>
+</div>
 {% endblock %}

@@ -18,6 +18,7 @@ requests = "*"
 django-constance = {extras = ["database"]}
 django-crispy-forms = "*"
 envparse = "*"
+django-widget-tweaks = "*"
 
 
 [dev-packages]

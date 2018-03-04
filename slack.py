@@ -91,6 +91,9 @@ class Api(_ApiBase):
             if channel['name'] == name:
                 return channel['id']
 
+    def user_info(self, user_id):
+        return self._get('users.info', {'user': user_id})
+
 
 class Channel(_ApiBase):
     def __init__(self, bot_token, channel_id):
@@ -114,7 +117,10 @@ class Channel(_ApiBase):
         return self._post('chat.delete', {'ts': ts})
 
     def post_message(self, text, attachments):
-        return self._post('chat.postMessage', {'text': text, 'attachments': attachments})
+        # as_user is needed, so direct messages can be deleted.
+        # if DMs are sent to the user without as_user: True, they appear as if slackbot sent them
+        # and there will be no channel which can be referenced later to delete the sent messages
+        return self._post('chat.postMessage', {'text': text, 'attachments': attachments, 'as_user': True})
 
 
 class App:
