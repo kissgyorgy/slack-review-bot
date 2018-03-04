@@ -10,7 +10,7 @@
 
 <body>
 
-  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <nav class="navbar navbar-expand-lg bg-light">
     <a class="navbar-brand" href="/">Gerrit-Slack bot</a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
@@ -18,41 +18,48 @@
 
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
       <ul class="navbar-nav mr-auto">
-        <li class="nav-item active">
-          <a class="nav-link" href="/">Home</a>
-        </li>
-        <li class="nav-item active">
-          <a class="nav-link" href="{% url 'new' %}">New</a>
-        </li>
+        <a href="{% url 'new' %}" class="btn btn-outline-success" style="color: green;">
+          <strong>+</strong> New
+        </a>
       </ul>
-      {% if request.user.is_superuser %}
-        {% if is_bot_paused %}
-          <form action="{% url 'resume' %}" method="post">
-            {% csrf_token %}
-            <button class="btn btn-primary">&#x23ef; Resume</button>
-          </form>
-        {% else %}
-          <form action="{% url 'pause' %}" method="post">
-            {% csrf_token %}
-            <button class="btn btn-warning">&#x23f8; Pause</button>
-          </form>
+
+      <ul class="navbar-nav">
+
+        {% if request.user.is_superuser %}
+
+          {% if is_bot_paused %}
+            <form action="{% url 'resume' %}" method="post">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-outline-primary">&#x23ef; Resume</button>
+            </form>
+          {% else %}
+            <form action="{% url 'pause' %}" method="post">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-outline-warning">&#x23f8; Pause</button>
+            </form>
+          {% endif %}
+
+          {% if not is_bot_configured %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ slack_button_url }}">
+                <img alt="Add to Slack" height="40" width="139" src="https://platform.slack-edge.com/img/add_to_slack.png" srcset="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x" />
+              </a>
+            </li>
+          {% endif %}
+
         {% endif %}
-        {% if not is_bot_configured %}
-          <span class="navbar-text">
-            <a href="{{ slack_button_url }}">
-              <img alt="Add to Slack" height="40" width="139" src="https://platform.slack-edge.com/img/add_to_slack.png" srcset="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x" />
-            </a>
-          </span>
+
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'usage' %}">Usage, notations</a>
+        </li>
+
+        {% if request.user.is_superuser %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'admin:index' %}">Admin</a>
+          </li>
         {% endif %}
-      {% endif %}
-      <span class="navbar-text">
-        <a class="nav-link" href="{% url 'usage' %}">Usage, notations</a>
-      </span>
-      {% if request.user.is_superuser %}
-        <span class="navbar-text">
-          <a class="nav-link" href="{% url 'admin:index' %}">Admin</a>
-        </span>
-      {% endif %}
+
+      </ul>
     </div>
   </nav>
 
