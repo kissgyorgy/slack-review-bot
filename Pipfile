@@ -17,6 +17,7 @@ croniter = "*"
 requests = "*"
 django-constance = {extras = ["database"]}
 django-crispy-forms = "*"
+envparse = "*"
 
 
 [dev-packages]

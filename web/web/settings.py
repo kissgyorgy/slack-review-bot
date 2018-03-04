@@ -12,6 +12,15 @@ https://docs.djangoproject.com/en/2.0/ref/settings/
 
 import os
 from django.contrib.messages import constants as message_constants
+from envparse import Env
+
+
+env = Env(
+    SECRET_KEY=str,
+    ALLOWED_HOSTS=dict(cast=list, subcast=str, default=[]),
+    TIME_ZONE=dict(cast=str, default='Europe/Budapest'),
+    LANGUAGE_CODE=dict(cast=str, default='hu-hu'),
+)
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -21,12 +30,12 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/2.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'vmvd(kykrbi7t+(s4*3ct%l2ydfmv2k6bwiw@*%uv2f8nm8d4a'
+SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env('ALLOWED_HOSTS')
 
 INSTALLED_APPS = [
     # django apps
@@ -123,15 +132,10 @@ AUTH_PASSWORD_VALIDATORS = []
 
 # Internationalization
 # https://docs.djangoproject.com/en/2.0/topics/i18n/
-
-LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
-
+LANGUAGE_CODE = env('LANGUAGE_CODE')
+TIME_ZONE = env('TIME_ZONE')
 USE_I18N = True
-
 USE_L10N = True
-
 USE_TZ = True
 
 
