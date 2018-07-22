@@ -1,1 +1,7 @@
 .git/
+.vscode/
+gerrit_responses/
+slack_messages/
+.env
+.gitignore
+data/
