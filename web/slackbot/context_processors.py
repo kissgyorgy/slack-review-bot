@@ -13,17 +13,19 @@ def slack_button(request):
 
     # we don't need to calculate the slack_button_url if the bot is already configured
     if config.BOT_ACCESS_TOKEN != settings.BOT_ACCESS_TOKEN_DEFAULT:
-        return {'is_bot_configured': True}
+        return {"is_bot_configured": True}
 
     # if the state is different we got from oauth authorization, we should refuse the token, because
     # probably a third-party generated it. For details, see https://api.slack.com/docs/slack-button
-    request.session['oauth_state'] = secrets.token_urlsafe(32)
-    slack_app = slack.App(config.SLACK_CLIENT_ID, config.SLACK_CLIENT_SECRET, config.SLACK_REDIRECT_URI)
+    request.session["oauth_state"] = secrets.token_urlsafe(32)
+    slack_app = slack.App(
+        config.SLACK_CLIENT_ID, config.SLACK_CLIENT_SECRET, config.SLACK_REDIRECT_URI
+    )
     return {
-        'slack_button_url': slack_app.make_button_url(request.session['oauth_state']),
-        'is_bot_configured': False,
+        "slack_button_url": slack_app.make_button_url(request.session["oauth_state"]),
+        "is_bot_configured": False,
     }
 
 
 def is_bot_paused(request):
-    return {'is_bot_paused': uwsgi.is_locked()}
+    return {"is_bot_paused": uwsgi.is_locked()}

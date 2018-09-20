@@ -3,14 +3,10 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
-
 [requires]
-
 python_version = "3.6"
 
-
 [packages]
-
 django = "*"
 croniter = "*"
 requests = "*"
@@ -19,7 +15,6 @@ django-crispy-forms = "*"
 envparse = "*"
 django-widget-tweaks = "*"
 
-
 [dev-packages]
-
 ipython = "*"
+black = "*"

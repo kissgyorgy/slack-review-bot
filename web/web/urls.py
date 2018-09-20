@@ -19,13 +19,13 @@ from slackbot import views
 
 
 urlpatterns = [
-    path('', views.HomeView.as_view(), name='home'),
-    path('new/', views.CrontabCreateView.as_view(), name='new'),
-    path('edit/<int:pk>/', views.CrontabEditView.as_view(), name='edit'),
-    path('delete/<int:pk>/', views.CrontabDeleteView.as_view(), name='delete'),
-    path('slack-oauth/', views.slack_oauth, name='slack_oauth'),
-    path('usage/', views.UsageView.as_view(), name='usage'),
-    path('pause/', views.pause_bot, name='pause'),
-    path('resume/', views.resume_bot, name='resume'),
-    path('admin/', admin.site.urls),
+    path("", views.HomeView.as_view(), name="home"),
+    path("new/", views.CrontabCreateView.as_view(), name="new"),
+    path("edit/<int:pk>/", views.CrontabEditView.as_view(), name="edit"),
+    path("delete/<int:pk>/", views.CrontabDeleteView.as_view(), name="delete"),
+    path("slack-oauth/", views.slack_oauth, name="slack_oauth"),
+    path("usage/", views.UsageView.as_view(), name="usage"),
+    path("pause/", views.pause_bot, name="pause"),
+    path("resume/", views.resume_bot, name="resume"),
+    path("admin/", admin.site.urls),
 ]

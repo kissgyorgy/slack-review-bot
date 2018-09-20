@@ -24,39 +24,39 @@ class Change:
 
     @property
     def url(self):
-        change_number = self._change['_number']
-        return f'{self._gerrit_url}/#/c/{change_number}'
+        change_number = self._change["_number"]
+        return f"{self._gerrit_url}/#/c/{change_number}"
 
     @property
     def username(self):
         # it is the username because it takes less characters, so
         # more valuable information can fit in one line
-        return self._change['owner']['username']
+        return self._change["owner"]["username"]
 
     @property
     def subject(self):
-        return self._change['subject']
+        return self._change["subject"]
 
     @property
     def code_review(self):
-        cr = self._change['labels']['Code-Review']
-        if 'approved' in cr:
+        cr = self._change["labels"]["Code-Review"]
+        if "approved" in cr:
             return CodeReview.PLUS_TWO
-        elif 'value' not in cr:
+        elif "value" not in cr:
             return CodeReview.MISSING
-        elif cr['value'] == 1:
+        elif cr["value"] == 1:
             return CodeReview.PLUS_ONE
-        elif cr['value'] == -1:
+        elif cr["value"] == -1:
             return CodeReview.MINUS_ONE
-        elif cr['value'] == -2:
+        elif cr["value"] == -2:
             return CodeReview.MINUS_TWO
 
     @property
     def verified(self):
-        ver = self._change['labels']['Verified']
+        ver = self._change["labels"]["Verified"]
         if not ver:
             return Verified.MISSING
-        elif 'approved' in ver:
+        elif "approved" in ver:
             return Verified.VERIFIED
         else:
             return Verified.FAILED
@@ -71,18 +71,19 @@ def get(api_url):
 
 
 def make_changes_url(gerrit_url, query):
-    return f'{gerrit_url}/#/q/{query}'
+    return f"{gerrit_url}/#/q/{query}"
 
 
 class Client:
-
     def __init__(self, gerrit_url, query):
         self._gerrit_url = gerrit_url
         # For +1 and -1 information, LABELS option has to be requested. See:
         # https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#detailed-labels
         # for owner name, DETAILED_ACCOUNTS:
         # https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#detailed-accounts
-        self._changes_api_url = f'{gerrit_url}/changes/?o=LABELS&o=DETAILED_ACCOUNTS&q={query}'
+        self._changes_api_url = (
+            f"{gerrit_url}/changes/?o=LABELS&o=DETAILED_ACCOUNTS&q={query}"
+        )
 
         self.query = query
         self.changes_url = make_changes_url(gerrit_url, query)

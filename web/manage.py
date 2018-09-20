@@ -14,6 +14,6 @@ if __name__ == "__main__":
         ) from exc
 
     # slack, gerrit and bot modules are one directory above
-    sys.path.append('..')
+    sys.path.append("..")
 
     execute_from_command_line(sys.argv)

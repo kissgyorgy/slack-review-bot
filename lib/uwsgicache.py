@@ -5,7 +5,11 @@ try:
     from django.utils.encoding import force_bytes as stringify
 except ImportError:
     from django.utils.encoding import smart_str as stringify
-from django.core.cache.backends.base import BaseCache, InvalidCacheBackendError, DEFAULT_TIMEOUT
+from django.core.cache.backends.base import (
+    BaseCache,
+    InvalidCacheBackendError,
+    DEFAULT_TIMEOUT,
+)
 from django.conf import settings
 
 try:
@@ -27,6 +31,7 @@ except ImportError:
 
 
 if uwsgi:
+
     class UWSGICache(BaseCache):
         def __init__(self, server, params):
             BaseCache.__init__(self, params)
@@ -63,7 +68,9 @@ if uwsgi:
                 uwsgi_timeout = -1
             else:
                 uwsgi_timeout = timeout
-            self._cache.cache_update(stringify(full_key), pickle.dumps(value), uwsgi_timeout, self._server)
+            self._cache.cache_update(
+                stringify(full_key), pickle.dumps(value), uwsgi_timeout, self._server
+            )
 
         def set(self, key, value, timeout=True, version=None):
             full_key = self.make_key(key, version=version)
@@ -78,5 +85,9 @@ if uwsgi:
 
         def clear(self):
             self._cache.cache_clear(self._server)
+
+
 else:
-    from django.core.cache.backends.locmem import LocMemCache as UWSGICache # flake8: noqa
+    from django.core.cache.backends.locmem import (
+        LocMemCache as UWSGICache
+    )  # flake8: noqa

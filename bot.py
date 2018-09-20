@@ -52,7 +52,7 @@ class PostableChange:
     @property
     def verified_icon(self):
         if self.ver == gerrit.Verified.MISSING:
-            return ''
+            return ""
         elif self.ver == gerrit.Verified.VERIFIED:
             return slack.Emoji.WHITE_CHECK_MARK
         elif self.ver == gerrit.Verified.FAILED:
@@ -61,19 +61,22 @@ class PostableChange:
     @property
     def color(self):
         if self.cr == gerrit.CodeReview.PLUS_TWO:
-            return '#36a64f'
-        elif self.cr == gerrit.CodeReview.PLUS_ONE and self.ver == gerrit.Verified.VERIFIED:
-            return '#DBF32D'
+            return "#36a64f"
+        elif (
+            self.cr == gerrit.CodeReview.PLUS_ONE
+            and self.ver == gerrit.Verified.VERIFIED
+        ):
+            return "#DBF32D"
         else:
-            return '#EC1313'
+            return "#EC1313"
 
     def full_message(self):
-        text = f'CR: {self.code_review_icon} V: {self.verified_icon} {self.username}: {self.subject}'
+        text = f"CR: {self.code_review_icon} V: {self.verified_icon} {self.username}: {self.subject}"
         # we count every icon as one character long
         icon_lenghts = len(self.code_review_icon) + len(self.verified_icon)
         # Slack wraps lines around this width, so if we cut out here explicitly,
         # every patch will fit in one line.
-        return textwrap.shorten(text, width=76+icon_lenghts-2, placeholder='…')
+        return textwrap.shorten(text, width=76 + icon_lenghts - 2, placeholder="…")
 
 
 class CronJob:
@@ -83,7 +86,7 @@ class CronJob:
         self._crontab = crontab
 
     def __str__(self):
-        return f'{self._gerrit.query} -> {self._slack_channel}'
+        return f"{self._gerrit.query} -> {self._slack_channel}"
 
     def __repr__(self):
         return f"CronJob(query='{self._gerrit.query}', channel='{self._slack_channel}')"
@@ -92,7 +95,7 @@ class CronJob:
         changes = [PostableChange(c) for c in self._gerrit.get_changes()]
         if not changes:
             self._delete_previous_messages()
-            print('No changes')
+            print("No changes")
             return
 
         json_res = self._post_to_slack(changes)
@@ -103,9 +106,11 @@ class CronJob:
         self._delete_previous_messages(just_sent)
 
     def _post_to_slack(self, changes):
-        summary_text = f'{len(changes)} patch vár review-ra:'
+        summary_text = f"{len(changes)} patch vár review-ra:"
         summary_link = slack.make_link(self._gerrit.changes_url, summary_text)
-        attachments = [slack.make_attachment(c.color, c.full_message(), c.url) for c in changes]
+        attachments = [
+            slack.make_attachment(c.color, c.full_message(), c.url) for c in changes
+        ]
         return self._slack_channel.post_message(summary_link, attachments)
 
     def _delete_previous_messages(self, just_sent=None):
@@ -117,14 +122,19 @@ class CronJob:
             sent_message.delete()
 
     def _save_message(self, json_res):
-        jsm = json_res['message']
-        sm = SentMessage(crontab=self._crontab, ts=jsm['ts'], channel_id=json_res['channel'], message=jsm)
+        jsm = json_res["message"]
+        sm = SentMessage(
+            crontab=self._crontab,
+            ts=jsm["ts"],
+            channel_id=json_res["channel"],
+            message=jsm,
+        )
         sm.save()
         return sm
 
 
 class MuleMessage:
-    RELOAD = b'reload'
+    RELOAD = b"reload"
 
 
 should_reload = threading.Event()
@@ -141,11 +151,11 @@ def resume():
 def block_if_paused():
     was_locked = uwsgi.is_locked()
     if was_locked:
-        print('Bot is paused, waiting for resume...')
+        print("Bot is paused, waiting for resume...")
     uwsgi.lock()
     uwsgi.unlock()
     if was_locked:
-        print('Resuming...')
+        print("Resuming...")
 
 
 class WaitForMessages(threading.Thread):
@@ -153,15 +163,15 @@ class WaitForMessages(threading.Thread):
 
     def run(self):
         while True:
-            print('Waiting for messages...')
+            print("Waiting for messages...")
             message = uwsgi.mule_get_msg()
-            print(f'Got {message!s} message.')
+            print(f"Got {message!s} message.")
             if message == MuleMessage.RELOAD:
                 should_reload.set()
 
 
 def make_cronjobs():
-    print('Loading settings and crontabs from db...')
+    print("Loading settings and crontabs from db...")
     gerrit_url = config.GERRIT_URL
     bot_access_token = config.BOT_ACCESS_TOKEN
 
@@ -170,36 +180,36 @@ def make_cronjobs():
         cronjob = CronJob(gerrit_url, bot_access_token, crontab)
         cronjobs.append((crontab, cronjob))
 
-    print('Cronjobs:', cronjobs)
+    print("Cronjobs:", cronjobs)
     return cronjobs
 
 
 def main():
-    print('Started main')
+    print("Started main")
     should_reload.set()
 
     while True:
         block_if_paused()
 
         if should_reload.is_set():
-            print('Reloading...')
+            print("Reloading...")
             cronjobs = make_cronjobs()
             should_reload.clear()
 
         now = dt.datetime.now()
         rounded_now = now.replace(second=0, microsecond=0)
-        print(now, 'Checking crontabs to run...')
+        print(now, "Checking crontabs to run...")
 
         for crontab, cronjob in cronjobs:
             if crontab.next == rounded_now:
-                print('Running job...', cronjob)
+                print("Running job...", cronjob)
                 cronjob.run()
                 crontab.calc_next()
 
         time.sleep(20)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     django.setup()
     print(Crontab.objects.all())
     WaitForMessages().start()

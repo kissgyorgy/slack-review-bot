@@ -25,175 +25,137 @@
 # }
 
 message1 = {
-    'channel': '@walkman',
-    'attachments': [
+    "channel": "@walkman",
+    "attachments": [
         {
-            'fallback': 'tests/jenkins/dsl: setup for parametric jobs',
-            'color': '#36a64f',
-            'author_name': 'Nyírő Gergő: tests/jenkins/dsl: setup for parametric jobs',
-            'author_link': 'http://flickr.com/bobby/',
-            'author_icon': 'https://intra.balabit/whoiswho/images/gyorgykiss_250.jpg',
-            'mrkdwn_in': ['fields'],
-            'fields': [
-                {
-                    'title': 'Code-Review',
-                    'value': '+1',
-                    'short': True
-                },
-                {
-                    'title': 'Verified',
-                    'value': '✓',
-                    'short': True
-                }
-            ]
+            "fallback": "tests/jenkins/dsl: setup for parametric jobs",
+            "color": "#36a64f",
+            "author_name": "Nyírő Gergő: tests/jenkins/dsl: setup for parametric jobs",
+            "author_link": "http://flickr.com/bobby/",
+            "author_icon": "https://intra.balabit/whoiswho/images/gyorgykiss_250.jpg",
+            "mrkdwn_in": ["fields"],
+            "fields": [
+                {"title": "Code-Review", "value": "+1", "short": True},
+                {"title": "Verified", "value": "✓", "short": True},
+            ],
         },
         {
-            'fallback': 'tests/jenkins/dsl: setup for parametric jobs',
-            'color': '#36a64f',
-            'author_name': 'Kiss György: tests/jenkins/dsl: setup for parametric jobs',
-            'author_link': 'http://flickr.com/bobby/',
-            'author_icon': 'https://intra.balabit/whoiswho/images/gyorgykiss_250.jpg',
-            'mrkdwn_in': ['fields'],
-            'fields': [
-                {
-                    'title': 'ID',
-                    'value': '12312',
-                    'short': True
-                },
-                {
-                    'title': 'Code-Review',
-                    'value': '-1',
-                    'short': True
-                },
-                {
-                    'title': 'Verified',
-                    'value': '✓',
-                    'short': True
-                }
-            ]
-        }
-    ]
+            "fallback": "tests/jenkins/dsl: setup for parametric jobs",
+            "color": "#36a64f",
+            "author_name": "Kiss György: tests/jenkins/dsl: setup for parametric jobs",
+            "author_link": "http://flickr.com/bobby/",
+            "author_icon": "https://intra.balabit/whoiswho/images/gyorgykiss_250.jpg",
+            "mrkdwn_in": ["fields"],
+            "fields": [
+                {"title": "ID", "value": "12312", "short": True},
+                {"title": "Code-Review", "value": "-1", "short": True},
+                {"title": "Verified", "value": "✓", "short": True},
+            ],
+        },
+    ],
 }
 
 message2 = {
-    'channel': '@walkman',
-    'attachments': [
+    "channel": "@walkman",
+    "attachments": [
         {
-            'fallback': 'tests/jenkins/dsl: setup for parametric jobs',
-            'color': '#36a64f',
-            'author_name': 'Nyírő Gergő: tests/jenkins/dsl: setup for parametric jobs',
-            'author_link': 'http://flickr.com/bobby/',
-            'author_icon': 'https://intra.balabit/whoiswho/images/gyorgykiss_250.jpg',
-            'mrkdwn_in': ['fields'],
-            'fields': [
-                {
-                    'title': 'Code-Review: -2',
-                    'short': True
-                },
-                {
-                    'title': 'Verified: ✓',
-                    'short': True
-                }
-            ]
+            "fallback": "tests/jenkins/dsl: setup for parametric jobs",
+            "color": "#36a64f",
+            "author_name": "Nyírő Gergő: tests/jenkins/dsl: setup for parametric jobs",
+            "author_link": "http://flickr.com/bobby/",
+            "author_icon": "https://intra.balabit/whoiswho/images/gyorgykiss_250.jpg",
+            "mrkdwn_in": ["fields"],
+            "fields": [
+                {"title": "Code-Review: -2", "short": True},
+                {"title": "Verified: ✓", "short": True},
+            ],
         },
         {
-            'fallback': 'tests/jenkins/dsl: setup for parametric jobs',
-            'color': '#36a64f',
-            'author_name': 'Kiss György: tests/jenkins/dsl: setup for parametric jobs',
-            'author_link': 'http://flickr.com/bobby/',
-            'author_icon': 'https://intra.balabit/whoiswho/images/gyorgykiss_250.jpg',
-            'mrkdwn_in': ['fields'],
-            'fields': [
-                {
-                    'title': 'Code-Review: -1',
-                    'short': True
-                },
-                {
-                    'title': 'Verified: ✓',
-                    'short': True
-                }
-            ]
-        }
-    ]
+            "fallback": "tests/jenkins/dsl: setup for parametric jobs",
+            "color": "#36a64f",
+            "author_name": "Kiss György: tests/jenkins/dsl: setup for parametric jobs",
+            "author_link": "http://flickr.com/bobby/",
+            "author_icon": "https://intra.balabit/whoiswho/images/gyorgykiss_250.jpg",
+            "mrkdwn_in": ["fields"],
+            "fields": [
+                {"title": "Code-Review: -1", "short": True},
+                {"title": "Verified: ✓", "short": True},
+            ],
+        },
+    ],
 }
 
 
 message_emoji = {
-    'channel': '@walkman',
-    'attachments': [
+    "channel": "@walkman",
+    "attachments": [
         {
-            'fallback': 'tests/jenkins/dsl: setup for parametric jobs',
-            'color': '#36a64f',
-            'author_name': 'Nyírő Gergő: tests/jenkins/dsl: setup for parametric jobs',
-            'author_link': 'http://flickr.com/bobby/',
-            'author_icon': 'https://intra.balabit/whoiswho/images/gyorgykiss_250.jpg',
-            'mrkdwn_in': ['fields'],
-            'fields': [
-                {
-                    'title': 'Code-Review: :+1::+1:        Verified: :x:',
-                    'short': False,
-                },
+            "fallback": "tests/jenkins/dsl: setup for parametric jobs",
+            "color": "#36a64f",
+            "author_name": "Nyírő Gergő: tests/jenkins/dsl: setup for parametric jobs",
+            "author_link": "http://flickr.com/bobby/",
+            "author_icon": "https://intra.balabit/whoiswho/images/gyorgykiss_250.jpg",
+            "mrkdwn_in": ["fields"],
+            "fields": [
+                {"title": "Code-Review: :+1::+1:        Verified: :x:", "short": False}
             ],
         },
         {
-            'fallback': 'tests/jenkins/dsl: setup for parametric jobs',
-            'color': '#36a64f',
-            'author_name': 'Kiss György: tests/jenkins/dsl: setup for parametric jobs',
-            'author_link': 'http://flickr.com/bobby/',
-            'author_icon': 'https://intra.balabit/whoiswho/images/gyorgykiss_250.jpg',
-            'mrkdwn_in': ['fields'],
-            'fields': [
+            "fallback": "tests/jenkins/dsl: setup for parametric jobs",
+            "color": "#36a64f",
+            "author_name": "Kiss György: tests/jenkins/dsl: setup for parametric jobs",
+            "author_link": "http://flickr.com/bobby/",
+            "author_icon": "https://intra.balabit/whoiswho/images/gyorgykiss_250.jpg",
+            "mrkdwn_in": ["fields"],
+            "fields": [
                 {
-                    'title': 'Code-Review: :exclamation:        Verified: :white_check_mark:',
-                    'short': False,
-                },
-            ]
-        }
-    ]
+                    "title": "Code-Review: :exclamation:        Verified: :white_check_mark:",
+                    "short": False,
+                }
+            ],
+        },
+    ],
 }
 
 
 message_emoji2 = {
-    'channel': '@walkman',
-    'text': '10 patch vár review-ra:',
-    'attachments': [
+    "channel": "@walkman",
+    "text": "10 patch vár review-ra:",
+    "attachments": [
         {
-            'color': '#36a64f',
-            'author_name': 'Nyírő Gergő: tests/jenkins/dsl: setup for parametric jobs',
-            'author_link': 'http://flickr.com/bobby/',
-            'author_icon': 'https://intra.balabit/whoiswho/images/gyorgykiss_250.jpg',
-            'mrkdwn_in': ['fields'],
-            'fields': [
-                {
-                    'title': 'Code-Review: :+1::+1:        Verified: :x:',
-                    'short': False,
-                },
+            "color": "#36a64f",
+            "author_name": "Nyírő Gergő: tests/jenkins/dsl: setup for parametric jobs",
+            "author_link": "http://flickr.com/bobby/",
+            "author_icon": "https://intra.balabit/whoiswho/images/gyorgykiss_250.jpg",
+            "mrkdwn_in": ["fields"],
+            "fields": [
+                {"title": "Code-Review: :+1::+1:        Verified: :x:", "short": False}
             ],
         },
         {
-            'color': '#36a64f',
-            'author_name': 'Kiss György: tests/jenkins/dsl: setup for parametric jobs',
-            'author_link': 'http://flickr.com/bobby/',
-            'author_icon': 'https://intra.balabit/whoiswho/images/gyorgykiss_250.jpg',
-            'mrkdwn_in': ['fields'],
-            'fields': [
+            "color": "#36a64f",
+            "author_name": "Kiss György: tests/jenkins/dsl: setup for parametric jobs",
+            "author_link": "http://flickr.com/bobby/",
+            "author_icon": "https://intra.balabit/whoiswho/images/gyorgykiss_250.jpg",
+            "mrkdwn_in": ["fields"],
+            "fields": [
                 {
-                    'title': 'Code-Review: :exclamation:        Verified: :white_check_mark:',
-                    'short': False,
-                },
-            ]
-        }
-    ]
+                    "title": "Code-Review: :exclamation:        Verified: :white_check_mark:",
+                    "short": False,
+                }
+            ],
+        },
+    ],
 }
 
 
 message_table = {
-    'channel': '@walkman',
-    'fallback': 'tests/jenkins/dsl: setup for parametric jobs',
-    'color': '#36a64f',
-    'text': """```
+    "channel": "@walkman",
+    "fallback": "tests/jenkins/dsl: setup for parametric jobs",
+    "color": "#36a64f",
+    "text": """```
 Name | Subject | Code-Review | Verified
 ---------------------------------------
 Kiss György | tests/jenkins/dsl: setup for parametric jobs
-```"""
+```""",
 }
