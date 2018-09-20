@@ -196,7 +196,7 @@ def main():
             cronjobs = make_cronjobs()
             should_reload.clear()
 
-        now = dt.datetime.now()
+        now = dt.datetime.now(dt.timezone.utc)
         rounded_now = now.replace(second=0, microsecond=0)
         print(now, "Checking crontabs to run...")
 

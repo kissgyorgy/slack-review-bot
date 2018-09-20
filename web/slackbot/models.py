@@ -1,5 +1,6 @@
 import datetime as dt
 from django.db import models
+from django.utils import timezone
 from croniter import croniter
 from constance import config
 import slack
@@ -27,14 +28,15 @@ class Crontab(models.Model):
             self.next = None
         else:
             # This way, we will miss this very minute at startup to avoid sending the same message twice
-            self._cron = croniter(self.crontab, start_time=dt.datetime.now())
+            self._cron = croniter(self.crontab, start_time=timezone.localtime())
             self.calc_next()
 
     def __str__(self):
         return f"{self.crontab}: {self.gerrit_query} -> {self.channel_name}"
 
     def calc_next(self):
-        self.next = self._cron.get_next(dt.datetime)
+        next_dt = self._cron.get_next(dt.datetime)
+        self.next = next_dt.astimezone(dt.timezone.utc)
 
 
 class SentMessage(models.Model):
