@@ -1,3 +1,4 @@
+import re
 import enum
 import json
 import requests
@@ -72,6 +73,23 @@ def get(api_url):
 
 def make_changes_url(gerrit_url, query):
     return f"{gerrit_url}/#/q/{query}"
+
+
+def parse_query(url):
+    """Parses the url and get the query from it."""
+    if not url.startswith("http"):
+        raise ValueError("Invalid URL")
+    url = url.strip()
+    url = url.rstrip("/")
+    # There are multiple formats possible:
+    # https://review.balabit/#/q/topic:f/matez+(status:open)
+    # https://review.balabit/#/c/39170/
+    # https://review.balabit/39170
+    m = re.search(r"/#/q/(.+)|/#/c/([0-9]+)|/([0-9]+)", url)
+    try:
+        return next(g for g in m.groups() if g is not None)
+    except StopIteration:
+        raise ValueError("Invalid URL")
 
 
 class Client:

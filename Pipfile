@@ -19,3 +19,5 @@ aiohttp = "*"
 [dev-packages]
 ipython = "*"
 black = "*"
+pytest = "*"
+pytest-sugar = "*"
