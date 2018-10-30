@@ -33,6 +33,10 @@ def make_link(url, text):
     return f"<{url}|{text}>"
 
 
+def parse_links(text):
+    return re.findall(r"<(.*?)>", text.strip())
+
+
 def make_attachment(color, author_name, author_link):
     return {"color": color, "author_name": author_name, "author_link": author_link}
 
