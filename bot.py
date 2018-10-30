@@ -103,7 +103,7 @@ class CronJob:
             return
 
         just_sent = self._save_message(json_res)
-        self._delete_previous_messages(just_sent)
+        self._delete_previous_messages(exclude=just_sent)
 
     def _post_to_slack(self, changes):
         summary_text = f"{len(changes)} patch vár review-ra:"
@@ -113,10 +113,10 @@ class CronJob:
         ]
         return self._slack_channel.post_message(summary_link, attachments)
 
-    def _delete_previous_messages(self, just_sent=None):
+    def _delete_previous_messages(self, exclude=None):
         qs = SentMessage.objects.filter(crontab=self._crontab)
-        if just_sent is not None:
-            qs = qs.exclude(pk=just_sent.pk)
+        if exclude is not None:
+            qs = qs.exclude(pk=exclude.pk)
         for sent_message in qs:
             # we need to delete one by one, because it's posting chat.delete to slack
             sent_message.delete()
@@ -186,6 +186,11 @@ def make_cronjobs():
 
 def main():
     print("Started main")
+
+    django.setup()
+    print(Crontab.objects.all())
+    WaitForMessages().start()
+
     should_reload.set()
 
     while True:
@@ -210,7 +215,4 @@ def main():
 
 
 if __name__ == "__main__":
-    django.setup()
-    print(Crontab.objects.all())
-    WaitForMessages().start()
     main()
