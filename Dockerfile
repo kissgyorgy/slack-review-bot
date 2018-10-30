@@ -16,7 +16,7 @@ RUN apk update && apk add python3 uwsgi-python3 sqlite
 
 RUN pip3 install pipenv
 COPY Pipfile Pipfile.lock /app/
-RUN pipenv install --system --deploy
+RUN pipenv install --system --deploy --verbose
 
 COPY uwsgi.ini /app/
 COPY docker-start.sh /app/

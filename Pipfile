@@ -14,6 +14,7 @@ django-constance = {extras = ["database"]}
 django-crispy-forms = "*"
 envparse = "*"
 django-widget-tweaks = "*"
+aiohttp = "*"
 
 [dev-packages]
 ipython = "*"
