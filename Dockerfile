@@ -26,5 +26,6 @@ COPY web/ /app/web/
 COPY gerrit.py /app/
 COPY slack.py /app/
 COPY bot.py /app/
+COPY rtm.py /app/
 
 RUN SECRET_KEY=doesntmatterhere django-admin collectstatic --link --noinput -v 0
