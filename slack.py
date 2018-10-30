@@ -1,5 +1,9 @@
-import requests
+import re
+import json
+import asyncio
 from urllib.parse import urlencode
+import aiohttp
+import requests
 
 
 class Emoji:
@@ -97,6 +101,42 @@ class Api(_ApiBase):
 
     def user_info(self, user_id):
         return self._get("users.info", {"user": user_id})
+
+
+class MsgType:
+    TYPING = "typing"
+    USER_TYPING = "user_typing"
+    MESSAGE = "message"
+    DESKTOP_NOTIFICATION = "desktop_notification"
+
+
+class MsgSubType:
+    MESSAGE_CHANGED = "message_changed"
+    MESSAGE_DELETED = "message_deleted"
+
+
+class RealTimeApi(_ApiBase):
+    async def connect(self, message_handler):
+        res = self._get("rtm.connect")
+        print("Connected to RTM api:", res)
+
+        session = aiohttp.ClientSession()
+        ws_connect = session.ws_connect(res["url"])
+        async with session, ws_connect as ws:
+            await self._wait_messages(ws, message_handler)
+
+    async def _wait_messages(self, ws, message_handler):
+        async for msg in ws:
+            if msg.type == aiohttp.WSMsgType.TEXT:
+                if msg.data == "close cmd":
+                    await ws.close()
+                    break
+            elif msg.type == aiohttp.WSMsgType.ERROR:
+                print("An unknown error occured in the connection, exiting...")
+                break
+
+            message_json = json.loads(msg.data)
+            asyncio.ensure_future(message_handler(ws, message_json))
 
 
 class Channel(_ApiBase):
