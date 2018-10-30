@@ -112,6 +112,7 @@ class MsgType:
     USER_TYPING = "user_typing"
     MESSAGE = "message"
     DESKTOP_NOTIFICATION = "desktop_notification"
+    GOODBYE = "goodbye"
 
 
 class MsgSubType:
@@ -131,15 +132,15 @@ class RealTimeApi(_ApiBase):
 
     async def _wait_messages(self, ws, message_handler):
         async for msg in ws:
+            message_json = json.loads(msg.data)
             if msg.type == aiohttp.WSMsgType.TEXT:
-                if msg.data == "close cmd":
+                if message_json["type"] == MsgType.GOODBYE:
                     await ws.close()
                     break
             elif msg.type == aiohttp.WSMsgType.ERROR:
                 print("An unknown error occured in the connection, exiting...")
                 break
 
-            message_json = json.loads(msg.data)
             asyncio.ensure_future(message_handler(ws, message_json))
 
 
