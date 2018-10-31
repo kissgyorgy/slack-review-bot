@@ -106,3 +106,12 @@ def slack_oauth(request):
 
     messages.success(request, "Succesfully installed Slackbot.")
     return redirect("/")
+
+
+@require_POST
+def run_crontab(request, crontab_id):
+    crontab = m.Crontab.objects.get(pk=crontab_id)
+    cronjob = bot.CronJob(config.GERRIT_URL, config.BOT_ACCESS_TOKEN, crontab)
+    cronjob.run()
+    messages.success(request, "Patch set updated.")
+    return redirect("/")

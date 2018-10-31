@@ -16,6 +16,7 @@
             <th scope="col">Slack #channel</th>
             <th scope="col">Gerrit query</th>
             <th scope="col">Crontab entry</th>
+            <th scope="col">Action</th>
             <th scope="col">Next run</th>
           </tr>
         </thead>
@@ -30,6 +31,12 @@
               </td>
               <td>
                 <a href="{% url 'edit' crontab.pk %}"> <pre>{{ crontab.crontab }}</pre> </a>
+              </td>
+              <td>
+                <form method="post" action="{% url 'run_crontab' crontab.pk %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-primary">▶ Run now</button>
+                </form>
               </td>
               <td>{{ crontab.next }}</td>
             </tr>

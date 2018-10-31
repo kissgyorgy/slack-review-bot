@@ -27,5 +27,6 @@ urlpatterns = [
     path("usage/", views.UsageView.as_view(), name="usage"),
     path("pause/", views.pause_bot, name="pause"),
     path("resume/", views.resume_bot, name="resume"),
+    path("run-now/<int:crontab_id>", views.run_crontab, name="run_crontab"),
     path("admin/", admin.site.urls),
 ]
