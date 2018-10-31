@@ -132,16 +132,17 @@ class RealTimeApi(_ApiBase):
 
     async def _wait_messages(self, ws, message_handler):
         async for msg in ws:
-            message_json = json.loads(msg.data)
+            print("RTM message:", msg.data)
             if msg.type == aiohttp.WSMsgType.TEXT:
-                if message_json["type"] == MsgType.GOODBYE:
+                message_json = json.loads(msg.data)
+                if message_json.get("type") == MsgType.GOODBYE:
                     await ws.close()
                     break
+                asyncio.ensure_future(message_handler(ws, message_json))
+
             elif msg.type == aiohttp.WSMsgType.ERROR:
                 print("An unknown error occured in the connection, exiting...")
                 break
-
-            asyncio.ensure_future(message_handler(ws, message_json))
 
 
 class Channel(_ApiBase):

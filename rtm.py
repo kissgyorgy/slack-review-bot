@@ -9,8 +9,6 @@ from slack import MsgType, MsgSubType
 
 
 async def process_message(ws, msg, *, loop):
-    pprint(msg)
-
     if "ok" in msg:
         return
 
