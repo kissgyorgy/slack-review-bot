@@ -9,7 +9,7 @@ from constance import config
 import slack
 import gerrit
 import django
-from slackbot.models import Crontab, SentMessage
+from slackbot.models import Crontab, SentMessage, ReviewRequest
 
 
 class PostableChange:
@@ -81,33 +81,63 @@ class PostableChange:
 
 class CronJob:
     def __init__(self, gerrit_url, bot_access_token, crontab):
-        self._gerrit = gerrit.Client(gerrit_url, crontab.gerrit_query)
+        self._gerrit = gerrit.Client(gerrit_url)
+        self._crontab_changes_url = self._gerrit.changes_url(crontab.gerrit_query)
         self._slack_channel = slack.Channel(bot_access_token, crontab.channel_id)
         self._crontab = crontab
 
     def __str__(self):
-        return f"{self._gerrit.query} -> {self._slack_channel}"
+        return f"{self._crontab.gerrit_query} -> {self._slack_channel}"
 
     def __repr__(self):
-        return f"CronJob(query='{self._gerrit.query}', channel='{self._slack_channel}')"
+        return f"CronJob(query='{self._crontab.gerrit_query}', channel='{self._slack_channel}')"
 
     def run(self):
-        changes = [PostableChange(c) for c in self._gerrit.get_changes()]
-        if not changes:
+        crontab_changes = self._get_crontab_changes()
+        review_request_changes = self._get_review_request_changes()
+        if not crontab_changes and not review_request_changes:
             self._delete_previous_messages()
             print("No changes")
             return
 
-        json_res = self._post_to_slack(changes)
+        json_res = self._post_to_slack(
+            f"{len(crontab_changes)} patch vár review-ra:",
+            self._crontab_changes_url,
+            crontab_changes,
+        )
+        # if we failed to send, do nothing instead of messing up the state
         if json_res is None:
             return
 
         just_sent = self._save_message(json_res)
         self._delete_previous_messages(exclude=just_sent)
 
-    def _post_to_slack(self, changes):
-        summary_text = f"{len(changes)} patch vár review-ra:"
-        summary_link = slack.make_link(self._gerrit.changes_url, summary_text)
+        json_res = self._post_to_slack(
+            f"{len(review_request_changes)} külső patch vár review-ra:",
+            config.GERRIT_URL,
+            review_request_changes,
+        )
+        if json_res is not None:
+            just_sent = self._save_message(json_res)
+
+    def _get_crontab_changes(self):
+        return [
+            PostableChange(c)
+            for c in self._gerrit.get_changes(self._crontab.gerrit_query)
+        ]
+
+    def _get_review_request_changes(self):
+        rrs = ReviewRequest.objects.filter(channel_id=self._crontab.channel_id)
+        all_changes = []
+        for rr in rrs:
+            rr_changes = [
+                PostableChange(c) for c in self._gerrit.get_changes(rr.gerrit_query)
+            ]
+            all_changes.extend(rr_changes)
+        return all_changes
+
+    def _post_to_slack(self, summary_text, changes_url, changes):
+        summary_link = slack.make_link(changes_url, summary_text)
         attachments = [
             slack.make_attachment(c.color, c.full_message(), c.url) for c in changes
         ]
