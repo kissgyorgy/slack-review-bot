@@ -20,3 +20,9 @@ def test_parse_url(url, expected_query):
 def test_invalid_parse_url():
     with pytest.raises(ValueError):
         gerrit.parse_query("some-invalid-url.com")
+
+
+class TestGerritClient:
+    def test_changes_url(self):
+        client = gerrit.Client("http://some.url")
+        assert client.changes_url("some-query") == "http://some.url/#/q/some-query"
