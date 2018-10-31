@@ -22,6 +22,10 @@ async def process_message(ws, msg, *, loop):
     if msgtype != MsgType.MESSAGE or msg.get("subtype"):
         return
 
+    # Don't react to bot's own messages :D
+    if msg["user"] == config.BOT_USER_ID:
+        return
+
     text = get_text(msg)
 
     queries = parse_gerrit_queries(text)
