@@ -6,6 +6,7 @@ from constance import config
 import gerrit
 import slack
 from slack import MsgType, MsgSubType
+from slackbot.models import Crontab, ReviewRequest
 
 
 async def process_message(ws, msg, *, loop):
@@ -50,7 +51,8 @@ def parse_gerrit_queries(text):
     rv = []
     for link in slack.parse_links(text):
         if link.startswith(config.GERRIT_URL):
-            rv.append(gerrit.parse_query(link))
+            query = (link, gerrit.parse_query(link))
+            rv.append(query)
     return rv
 
 
@@ -71,7 +73,22 @@ async def reply_in_thread(ws, msg):
 
 
 def save_review_requests(msg, queries):
-    pass
+    objs = []
+    channel_id = msg["channel"]
+    crontab = Crontab.objects.filter(channel_id=channel_id).first()
+    for gerrit_url, gerrit_query in queries:
+        rr = ReviewRequest(
+            crontab=crontab,
+            ts=msg["ts"],
+            slack_user_id=msg["user"],
+            channel_id=channel_id,
+            gerrit_url=gerrit_url,
+            gerrit_query=gerrit_query,
+        )
+        objs.append(rr)
+
+    ReviewRequest.objects.bulk_create(objs)
+    print(f"Saved {len(objs)} review requests.")
 
 
 def update_review_requests(ws, msg):

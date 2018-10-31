@@ -176,7 +176,7 @@ def make_cronjobs():
     bot_access_token = config.BOT_ACCESS_TOKEN
 
     cronjobs = []
-    for crontab in Crontab.objects.all():
+    for crontab in Crontab.objects.exclude(gerrit_query=""):
         cronjob = CronJob(gerrit_url, bot_access_token, crontab)
         cronjobs.append((crontab, cronjob))
 

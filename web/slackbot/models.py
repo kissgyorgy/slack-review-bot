@@ -10,11 +10,10 @@ class Crontab(models.Model):
     channel_name = models.CharField(max_length=100, blank=True)
     channel_id = models.CharField(
         max_length=30,
-        blank=True,
         help_text="Slack internal channel ID, will be "
         "automatically set based on channel_name",
     )
-    gerrit_query = models.CharField(max_length=255)
+    gerrit_query = models.CharField(max_length=255, blank=True)
     crontab = models.CharField(
         max_length=255,
         help_text='Examples: <a href="https://crontab.guru/" target="_blank">crontab.guru<a>',
@@ -71,6 +70,28 @@ class SentMessage(models.Model):
     def force_delete(self, *args, **kwargs):
         self._delete_slack_channel()
         return super().delete(*args, **kwargs)
+
+
+class ReviewRequest(models.Model):
+    crontab = models.ForeignKey(
+        Crontab,
+        on_delete=models.SET_NULL,
+        related_name="review_requests",
+        blank=True,
+        null=True,
+    )
+    ts = models.CharField(max_length=30, help_text="The message ts of the requests")
+    slack_user_id = models.CharField(
+        max_length=30, help_text="The Slack user who sent the request"
+    )
+    channel_id = models.CharField(
+        max_length=30, help_text="The channel where this requests is sent to originally"
+    )
+    gerrit_url = models.URLField()
+    gerrit_query = models.CharField(max_length=255, blank=True)
+
+    def __str__(self):
+        return self.gerrit_url
 
 
 class MuleMessage:
