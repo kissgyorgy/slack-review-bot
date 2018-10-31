@@ -95,8 +95,11 @@ class CronJob:
     def run(self):
         self._delete_previous_messages()
 
-        crontab_changes = self._get_crontab_changes()
-        review_request_changes = self._get_review_request_changes()
+        crontab_changes = [PostableChange(c) for c in self._crontab.get_changes()]
+        review_requests = ReviewRequest.objects.filter(channel_id=self._crontab.channel_id)
+        remaining_requests = self._delete_plus_two(review_requests)
+        review_request_changes = self._make_postable_changes(remaining_requests)
+
         if not crontab_changes and not review_request_changes:
             print("No changes")
             return
@@ -122,21 +125,21 @@ class CronJob:
             if json_res is not None:
                 self._save_message(json_res)
 
-    def _get_crontab_changes(self):
-        return [
-            PostableChange(c)
-            for c in self._gerrit.get_changes(self._crontab.gerrit_query)
-        ]
+    def _delete_plus_two(self, review_requests):
+        remaining_requests = []
+        for rr in review_requests:
+            if all(c.code_review == gerrit.CodeReview.PLUS_TWO for c in rr.get_changes()):
+                rr.delete()
+            else:
+                remaining_requests.append(rr)
 
-    def _get_review_request_changes(self):
-        rrs = ReviewRequest.objects.filter(channel_id=self._crontab.channel_id)
-        all_changes = []
-        for rr in rrs:
-            rr_changes = [
-                PostableChange(c) for c in self._gerrit.get_changes(rr.gerrit_query)
-            ]
-            all_changes.extend(rr_changes)
-        return all_changes
+        return remaining_requests
+
+    def _make_postable_changes(self, review_requests):
+        postable_changes = []
+        for rr in review_requests:
+            postable_changes.extend(PostableChange(c) for c in rr.get_changes())
+        return postable_changes
 
     def _post_to_slack(self, summary_text, changes_url, changes):
         summary_link = slack.make_link(changes_url, summary_text)

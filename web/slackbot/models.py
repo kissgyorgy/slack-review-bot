@@ -4,9 +4,22 @@ from django.utils import timezone
 from croniter import croniter
 from constance import config
 import slack
+import gerrit
 
 
-class Crontab(models.Model):
+class GerritChangesMixin:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._changes = None
+
+    def get_changes(self):
+        if self._changes is None:
+            client = gerrit.Client(config.GERRIT_URL)
+            self._changes = client.get_changes(self.gerrit_query)
+        return self._changes
+
+
+class Crontab(GerritChangesMixin, models.Model):
     channel_name = models.CharField(max_length=100, blank=True)
     channel_id = models.CharField(
         max_length=30,
@@ -72,7 +85,7 @@ class SentMessage(models.Model):
         return super().delete(*args, **kwargs)
 
 
-class ReviewRequest(models.Model):
+class ReviewRequest(GerritChangesMixin, models.Model):
     crontab = models.ForeignKey(
         Crontab,
         on_delete=models.SET_NULL,
