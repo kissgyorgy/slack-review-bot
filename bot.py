@@ -93,32 +93,34 @@ class CronJob:
         return f"CronJob(query='{self._crontab.gerrit_query}', channel='{self._slack_channel}')"
 
     def run(self):
+        self._delete_previous_messages()
+
         crontab_changes = self._get_crontab_changes()
         review_request_changes = self._get_review_request_changes()
         if not crontab_changes and not review_request_changes:
-            self._delete_previous_messages()
             print("No changes")
             return
 
-        json_res = self._post_to_slack(
-            f"{len(crontab_changes)} patch vár review-ra:",
-            self._crontab_changes_url,
-            crontab_changes,
-        )
-        # if we failed to send, do nothing instead of messing up the state
-        if json_res is None:
-            return
+        if crontab_changes:
+            json_res = self._post_to_slack(
+                f"{len(crontab_changes)} patch vár review-ra:",
+                self._crontab_changes_url,
+                crontab_changes,
+            )
+            # if we failed to send, do nothing instead of messing up the state
+            if json_res is None:
+                return
 
-        just_sent = self._save_message(json_res)
-        self._delete_previous_messages(exclude=just_sent)
+            self._save_message(json_res)
 
-        json_res = self._post_to_slack(
-            f"{len(review_request_changes)} külső patch vár review-ra:",
-            config.GERRIT_URL,
-            review_request_changes,
-        )
-        if json_res is not None:
-            just_sent = self._save_message(json_res)
+        if review_request_changes:
+            json_res = self._post_to_slack(
+                f"{len(review_request_changes)} külső patch vár review-ra:",
+                config.GERRIT_URL,
+                review_request_changes,
+            )
+            if json_res is not None:
+                self._save_message(json_res)
 
     def _get_crontab_changes(self):
         return [
@@ -143,11 +145,8 @@ class CronJob:
         ]
         return self._slack_channel.post_message(summary_link, attachments)
 
-    def _delete_previous_messages(self, exclude=None):
-        qs = SentMessage.objects.filter(crontab=self._crontab)
-        if exclude is not None:
-            qs = qs.exclude(pk=exclude.pk)
-        for sent_message in qs:
+    def _delete_previous_messages(self):
+        for sent_message in SentMessage.objects.filter(crontab=self._crontab):
             # we need to delete one by one, because it's posting chat.delete to slack
             sent_message.delete()
 
