@@ -41,14 +41,14 @@ def make_attachment(color, author_name, author_link):
     return {"color": color, "author_name": author_name, "author_link": author_link}
 
 
-def revoke_token(token):
-    return requests.post(SLACK_API_URL + "/auth.revoke", {"token": token})
-
-
 class _ApiBase:
     def __init__(self, token):
         self._token = token
-        self._auth_headers = {"Authorization": "Bearer " + token}
+        self._headers = {
+            "Authorization": "Bearer " + token,
+            # Slack needs a charset, otherwise it will send a warning in every response...
+            "Content-Type": "application/json; charset=utf-8",
+        }
 
     def _make_json_res(self, res, method, payload):
         json_res = res.json()
@@ -61,12 +61,10 @@ class _ApiBase:
             )
             return
 
-    def _get(self, method, payload=None):
-        print("Request", method, payload)
-        res = requests.get(
-            f"{SLACK_API_URL}/{method}", payload, headers=self._auth_headers
-        )
-        return self._make_json_res(res, method, payload)
+    def _get(self, method, params=None):
+        print("Request", method, params)
+        res = requests.get(f"{SLACK_API_URL}/{method}", params, headers=self._headers)
+        return self._make_json_res(res, method, params)
 
     def _get_all(self, method, field, payload):
         rv = []
@@ -83,19 +81,16 @@ class _ApiBase:
 
     def _post(self, method, payload=None):
         print("Posting to", method, payload)
-        headers = {
-            **self._auth_headers,
-            # Slack needs a charset, otherwise it will send a warning in every response...
-            "Content-Type": "application/json; charset=utf-8",
-        }
-        res = requests.post(f"{SLACK_API_URL}/{method}", headers=headers, json=payload)
+        res = requests.post(
+            f"{SLACK_API_URL}/{method}", headers=self._headers, json=payload
+        )
         return self._make_json_res(res, method, payload)
 
 
 class Api(_ApiBase):
     def list_all_channels(self):
-        payload = {"types": "public_channel,private_channel"}
-        return self._get_all("conversations.list", "channels", payload)
+        params = {"types": "public_channel,private_channel"}
+        return self._get_all("conversations.list", "channels", params)
 
     def get_channel_id(self, channel_name):
         name = channel_name.lstrip("#")
@@ -105,6 +100,12 @@ class Api(_ApiBase):
 
     def user_info(self, user_id):
         return self._get("users.info", {"user": user_id})
+
+    def revoke_token(self):
+        method = "auth.revoke"
+        # this method doesn't accept JSON body
+        res = requests.post(f"{SLACK_API_URL}/{method}", {"token": self._token})
+        return self._make_json_res(res, method, {"token": "XXXXXXXXXX"})
 
 
 class MsgType:
