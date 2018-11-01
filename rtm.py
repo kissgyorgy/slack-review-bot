@@ -9,14 +9,14 @@ from slack import MsgType, MsgSubType
 from slackbot.models import Crontab, ReviewRequest
 
 
-async def process_message(ws, msg, *, loop):
+async def process_message(api, msg, *, loop):
     if "ok" in msg:
         return
 
     msgtype = msg["type"]
 
     if msgtype == MsgType.DESKTOP_NOTIFICATION:
-        await handle_restart(msg)
+        await handle_restart(api, msg)
         return
 
     if msgtype != MsgType.MESSAGE or msg.get("subtype"):
@@ -31,16 +31,14 @@ async def process_message(ws, msg, *, loop):
     queries = parse_gerrit_queries(text)
     if queries:
         print(f"Found review links, adding them to queue: {queries}")
-        await send_typing_indicator(ws, msg["channel"])
-        await reply_in_thread(ws, msg)
-        await loop.run_in_executor(None, save_review_requests, msg, queries)
-        await loop.run_in_executor(None, update_review_requests, ws, msg)
+        loop.create_task(api.add_reaction(msg["channel"], msg["ts"], "review"))
+        loop.create_task(loop.run_in_executor(None, save_review_requests, msg, queries))
 
 
-async def handle_restart(msg):
+async def handle_restart(api, msg):
     content = msg["content"]
     if all(w in content for w in ("restart", "@Review")):
-        await ws.close()
+        await api.rtm_close()
 
 
 def get_text(msg):
@@ -58,22 +56,6 @@ def parse_gerrit_queries(text):
             query = (link, gerrit.parse_query(link))
             rv.append(query)
     return rv
-
-
-async def send_typing_indicator(ws, channel):
-    message = {"id": 1, "type": MsgType.TYPING, "channel": channel}
-    await ws.send_json(message)
-
-
-async def reply_in_thread(ws, msg):
-    message = {
-        "id": 2,
-        "type": MsgType.MESSAGE,
-        "channel": msg["channel"],
-        "text": "Köszi, betettem a listába.",
-        "thread_ts": msg["ts"],
-    }
-    await ws.send_json(message)
 
 
 def save_review_requests(msg, queries):
@@ -95,20 +77,16 @@ def save_review_requests(msg, queries):
     print(f"Saved {len(objs)} review requests.")
 
 
-def update_review_requests(ws, msg):
-    pass
-
-
 def main():
     django.setup()
-    rtm_api = slack.RealTimeApi(config.BOT_ACCESS_TOKEN)
+    api = slack.AsyncApi(config.BOT_ACCESS_TOKEN)
 
     loop = asyncio.get_event_loop()
     message_handler = functools.partial(process_message, loop=loop)
 
     # run_until_complete instead of run_forever, because
     # uwsgi can restart it if it crashes
-    loop.run_until_complete(rtm_api.connect(message_handler))
+    loop.run_until_complete(api.rtm_connect(message_handler))
 
 
 if __name__ == "__main__":

@@ -50,6 +50,8 @@ class _ApiBase:
             "Content-Type": "application/json; charset=utf-8",
         }
 
+
+class _SyncApiBase(_ApiBase):
     def _make_json_res(self, res, method, payload):
         json_res = res.json()
         if res.ok and json_res["ok"]:
@@ -87,7 +89,7 @@ class _ApiBase:
         return self._make_json_res(res, method, payload)
 
 
-class Api(_ApiBase):
+class Api(_SyncApiBase):
     def list_all_channels(self):
         params = {"types": "public_channel,private_channel"}
         return self._get_all("conversations.list", "channels", params)
@@ -121,32 +123,84 @@ class MsgSubType:
     MESSAGE_DELETED = "message_deleted"
 
 
-class RealTimeApi(_ApiBase):
-    async def connect(self, message_handler):
-        res = self._get("rtm.connect")
+class AsyncApi(_ApiBase):
+    async def _make_json_res(self, res, method, payload):
+        json_res = await res.json()
+        if 200 <= res.status < 400 and json_res["ok"]:
+            return json_res
+        else:
+            res_body = await res.text()
+            print(
+                f"Error {res.status} during {method} {res.method} request: {res_body}\n"
+                f"payload: {payload}"
+            )
+            return
+
+    async def _get(self, method, params=None):
+        print("Request", method, params)
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                f"{SLACK_API_URL}/{method}", params=params, headers=self._headers
+            ) as res:
+                return await self._make_json_res(res, method, params)
+
+    async def _post(self, method, payload):
+        print("Posting to", method, payload)
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{SLACK_API_URL}/{method}", headers=self._headers, json=payload
+            ) as res:
+                return await self._make_json_res(res, method, payload)
+
+    async def add_reaction(self, channel, ts, reaction_name):
+        payload = {"channel": channel, "timestamp": ts, "name": reaction_name}
+        return await self._post("reactions.add", payload)
+
+    async def rtm_connect(self, message_handler):
+        res = await self._get("rtm.connect")
         print("Connected to RTM api:", res)
 
         session = aiohttp.ClientSession()
         ws_connect = session.ws_connect(res["url"])
-        async with session, ws_connect as ws:
-            await self._wait_messages(ws, message_handler)
+        async with session, ws_connect as self._ws:
+            await self._wait_messages(message_handler)
 
-    async def _wait_messages(self, ws, message_handler):
-        async for msg in ws:
+    async def _wait_messages(self, message_handler):
+        async for msg in self._ws:
             print("RTM message:", msg.data)
             if msg.type == aiohttp.WSMsgType.TEXT:
                 message_json = json.loads(msg.data)
                 if message_json.get("type") == MsgType.GOODBYE:
-                    await ws.close()
+                    await self.rtm_close()
                     break
-                asyncio.ensure_future(message_handler(ws, message_json))
+                asyncio.ensure_future(message_handler(self, message_json))
 
             elif msg.type == aiohttp.WSMsgType.ERROR:
                 print("An unknown error occured in the connection, exiting...")
                 break
 
+    async def rtm_close(self):
+        await self._ws.close()
+        self._ws = None
 
-class Channel(_ApiBase):
+    async def rtm_send_typing_indicator(self, channel):
+        # FIXME: should be a real id
+        message = {"id": 1, "type": MsgType.TYPING, "channel": channel}
+        await self._ws.send_json(message)
+
+    async def rtm_reply_in_thread(self, channel, ts, text):
+        # FIXME: should be a real id
+        message = {
+            "id": 2,
+            "type": MsgType.MESSAGE,
+            "channel": channel,
+            "text": text,
+            "thread_ts": ts,
+        }
+        await self._ws.send_json(message)
+
+
+class Channel(_SyncApiBase):
     def __init__(self, bot_token, channel_id):
         super().__init__(bot_token)
         self._channel_id = channel_id
