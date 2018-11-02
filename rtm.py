@@ -84,7 +84,7 @@ def save_review_requests(msg, queries):
 
 
 async def rtm_connect(api, loop):
-    async with await api.rtm_connect() as rtm:
+    async with api.rtm_connect() as rtm:
         if not await rtm.got_hello():
             _count_down(10)
             return

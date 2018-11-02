@@ -172,26 +172,26 @@ class AsyncApi(_ApiBase):
         payload = {"channel": channel, "timestamp": ts, "name": reaction_name}
         return await self._post("reactions.add", payload)
 
-    async def rtm_connect(self):
-        return await self._connect_to_rtm_api("rtm.connect")
+    def rtm_connect(self):
+        return self._make_rtm_api("rtm.connect")
 
-    async def rtm_start(self):
-        return await self._connect_to_rtm_api("rtm.start")
+    def rtm_start(self):
+        return self._make_rtm_api("rtm.start")
 
-    async def _connect_to_rtm_api(self, method):
-        res = await self._get(method)
-        print("Connected to RTM api:", res)
-        ws = await self._session.ws_connect(res["url"])
-        return _RealtimeApi(res, ws, self._loop)
+    def _make_rtm_api(self, method):
+        return _RealtimeApi(self._get(method), self._session.ws_connect, self._loop)
 
 
 class _RealtimeApi:
-    def __init__(self, conn_res, ws, loop):
-        self._conn_res = conn_res
-        self._ws = ws
+    def __init__(self, get_coro, ws_connect, loop):
+        self._get_coro = get_coro
+        self._ws_connect = ws_connect
         self._loop = loop
 
     async def __aenter__(self):
+        res = await self._get_coro
+        print("Connected to RTM api:", res)
+        self._ws = await self._ws_connect(res["url"])
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
