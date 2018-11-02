@@ -51,6 +51,12 @@ class _ApiBase:
         self._loop = asyncio.get_event_loop()
         self._session = aiohttp.ClientSession(loop=self._loop)
 
+    def __del__(self):
+        self._run(self._close_session())
+
+    async def _close_session(self):
+        await self._session.close()
+
     async def _make_json_res(self, res, method, payload):
         json_res = await res.json()
         if 200 <= res.status < 400 and json_res["ok"]:
