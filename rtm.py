@@ -9,14 +9,14 @@ from slack import MsgType, MsgSubType
 from slackbot.models import Crontab, ReviewRequest
 
 
-async def process_message(api, msg, *, loop):
+async def process_message(api, rtm, msg, loop):
     if "ok" in msg:
         return
 
     msgtype = msg["type"]
 
     if msgtype == MsgType.DESKTOP_NOTIFICATION:
-        await handle_restart(api, msg)
+        await handle_restart(rtm, msg)
         return
 
     if msgtype != MsgType.MESSAGE or msg.get("subtype"):
@@ -40,10 +40,10 @@ async def process_message(api, msg, *, loop):
         await loop.run_in_executor(None, save_review_requests, msg, queries)
 
 
-async def handle_restart(api, msg):
+async def handle_restart(rtm, msg):
     content = msg["content"]
     if all(w in content for w in ("restart", "@Review")):
-        await api.rtm_close()
+        await rtm.close()
 
 
 def get_text(msg):
@@ -82,16 +82,19 @@ def save_review_requests(msg, queries):
     print(f"Saved {len(objs)} review requests.")
 
 
+async def rtm_connect(api, loop):
+    async with await api.rtm_connect() as rtm:
+        async for msg in rtm.wait_messages():
+            loop.create_task(process_message(api, rtm, msg, loop))
+
+
 def main():
     django.setup()
     api = slack.AsyncApi(config.BOT_ACCESS_TOKEN)
-
     loop = asyncio.get_event_loop()
-    message_handler = functools.partial(process_message, loop=loop)
-
     # run_until_complete instead of run_forever, because
     # uwsgi can restart it if it crashes
-    loop.run_until_complete(api.rtm_connect(message_handler))
+    loop.run_until_complete(rtm_connect(api, loop))
 
 
 if __name__ == "__main__":

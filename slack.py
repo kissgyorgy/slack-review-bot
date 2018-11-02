@@ -171,44 +171,61 @@ class AsyncApi(_ApiBase):
         payload = {"channel": channel, "timestamp": ts, "name": reaction_name}
         return await self._post("reactions.add", payload)
 
-    async def rtm_connect(self, message_handler):
-        res = await self._get("rtm.connect")
+    async def rtm_connect(self):
+        return await self._connect_to_rtm_api("rtm.connect")
+
+    async def rtm_start(self):
+        return await self._connect_to_rtm_api("rtm.start")
+
+    async def _connect_to_rtm_api(self, method):
+        res = await self._get(method)
         print("Connected to RTM api:", res)
+        ws = await self._session.ws_connect(res["url"])
+        return _RealtimeApi(res, ws, self._loop)
 
-        session = aiohttp.ClientSession()
-        ws_connect = session.ws_connect(res["url"])
-        async with session, ws_connect as self._ws:
-            await self._wait_messages(message_handler)
 
-    async def _wait_messages(self, message_handler):
+class _RealtimeApi:
+    def __init__(self, conn_res, ws, loop):
+        self._conn_res = conn_res
+        self._ws = ws
+        self._loop = loop
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        await self.close()
+
+    async def wait_messages(self):
         async for msg in self._ws:
             print("RTM message:", msg.data)
             if msg.type == aiohttp.WSMsgType.TEXT:
                 message_json = json.loads(msg.data)
                 if message_json.get("type") == MsgType.GOODBYE:
-                    await self.rtm_close()
+                    await self.close()
                     break
-                asyncio.ensure_future(message_handler(self, message_json))
+
+                yield message_json
 
             elif msg.type == aiohttp.WSMsgType.ERROR:
                 print("An unknown error occured in the connection, exiting...")
                 break
 
-    async def rtm_close(self):
+    async def close(self):
         await self._ws.close()
         self._ws = None
 
-    async def rtm_send_typing_indicator(self, channel):
+    async def send_typing_indicator(self, channel_id):
         # FIXME: should be a real id
-        message = {"id": 1, "type": MsgType.TYPING, "channel": channel}
+        message = {"id": 1, "type": MsgType.TYPING, "channel": channel_id}
         await self._ws.send_json(message)
 
-    async def rtm_reply_in_thread(self, channel, ts, text):
+    async def reply_in_thread(self, channel_id, ts, text):
         # FIXME: should be a real id
         message = {
             "id": 2,
             "type": MsgType.MESSAGE,
-            "channel": channel,
+            "channel": channel_id,
             "text": text,
             "thread_ts": ts,
         }
