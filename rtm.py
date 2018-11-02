@@ -32,7 +32,12 @@ async def process_message(api, msg, *, loop):
     if queries:
         print(f"Found review links, adding them to queue: {queries}")
         loop.create_task(api.add_reaction(msg["channel"], msg["ts"], "review"))
-        loop.create_task(loop.run_in_executor(None, save_review_requests, msg, queries))
+        # with loop.create_task, it would raise an AssertionError:
+        #   File "/usr/lib/python3.6/asyncio/coroutines.py", line 276, in _format_coroutine
+        # assert iscoroutine(coro)
+        # AssertionError
+        # https://bugs.python.org/issue34071
+        await loop.run_in_executor(None, save_review_requests, msg, queries)
 
 
 async def handle_restart(api, msg):
