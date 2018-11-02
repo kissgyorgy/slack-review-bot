@@ -1,7 +1,8 @@
 import re
 import enum
 import json
-import requests
+import asyncio
+import aiohttp
 
 
 class CodeReview(enum.Enum):
@@ -63,11 +64,18 @@ class Change:
             return Verified.FAILED
 
 
+async def _get(*args, **kwargs):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(*args, **kwargs) as res:
+            return await res.text()
+
+
 def get(api_url):
-    res = requests.get(api_url, verify=False)
+    loop = asyncio.get_event_loop()
+    res_body = loop.run_until_complete(_get(api_url, ssl=False))
     # There is a )]}' sequence at the start of each response...
     # we can't process it simply as JSON because of that.
-    fixed_body = res.text[4:]
+    fixed_body = res_body[4:]
     return json.loads(fixed_body)
 
 

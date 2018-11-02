@@ -3,7 +3,6 @@ import json
 import asyncio
 from urllib.parse import urlencode
 import aiohttp
-import requests
 
 
 class Emoji:
@@ -49,29 +48,31 @@ class _ApiBase:
             # Slack needs a charset, otherwise it will send a warning in every response...
             "Content-Type": "application/json; charset=utf-8",
         }
+        self._loop = asyncio.get_event_loop()
+        self._session = aiohttp.ClientSession(loop=self._loop)
 
-
-class _SyncApiBase(_ApiBase):
-    def _make_json_res(self, res, method, payload):
-        json_res = res.json()
-        if res.ok and json_res["ok"]:
+    async def _make_json_res(self, res, method, payload):
+        json_res = await res.json()
+        if 200 <= res.status < 400 and json_res["ok"]:
             return json_res
         else:
+            res_body = await res.text()
             print(
-                f"Error {res.status_code} during {method} {res.request.method} request: {res.text}\n"
+                f"Error {res.status} during {method} {res.method} request: {res_body}\n"
                 f"payload: {payload}"
             )
             return
 
-    def _get(self, method, params=None):
+    async def _get(self, method, params=None):
         print("Request", method, params)
-        res = requests.get(f"{SLACK_API_URL}/{method}", params, headers=self._headers)
-        return self._make_json_res(res, method, params)
+        url = f"{SLACK_API_URL}/{method}"
+        async with self._session.get(url, params=params, headers=self._headers) as res:
+            return await self._make_json_res(res, method, params)
 
-    def _get_all(self, method, field, payload):
+    async def _get_all(self, method, field, params):
         rv = []
         while True:
-            json_res = self._get(method, payload)
+            json_res = await self._get(method, params)
             if json_res is None:
                 return
             rv.extend(json_res[field])
@@ -79,20 +80,22 @@ class _SyncApiBase(_ApiBase):
             print("Next cursor:", next_cursor or type(next_cursor))
             if not next_cursor:
                 return rv
-            payload["cursor"] = next_cursor
+            params["cursor"] = next_cursor
 
-    def _post(self, method, payload=None):
+    async def _post(self, method, payload):
         print("Posting to", method, payload)
-        res = requests.post(
-            f"{SLACK_API_URL}/{method}", headers=self._headers, json=payload
-        )
-        return self._make_json_res(res, method, payload)
+        url = f"{SLACK_API_URL}/{method}"
+        async with self._session.post(url, headers=self._headers, json=payload) as res:
+            return await self._make_json_res(res, method, payload)
+
+    def _run(self, coro):
+        return self._loop.run_until_complete(coro)
 
 
-class Api(_SyncApiBase):
+class Api(_ApiBase):
     def list_all_channels(self):
         params = {"types": "public_channel,private_channel"}
-        return self._get_all("conversations.list", "channels", params)
+        return self._run(self._get_all("conversations.list", "channels", params))
 
     def get_channel_id(self, channel_name):
         name = channel_name.lstrip("#")
@@ -101,13 +104,17 @@ class Api(_SyncApiBase):
                 return channel["id"]
 
     def user_info(self, user_id):
-        return self._get("users.info", {"user": user_id})
+        return self._run(self._get("users.info", {"user": user_id}))
 
     def revoke_token(self):
-        method = "auth.revoke"
+        return self._run(self._revoke_token())
+
+    async def _revoke_token(self):
         # this method doesn't accept JSON body
-        res = requests.post(f"{SLACK_API_URL}/{method}", {"token": self._token})
-        return self._make_json_res(res, method, {"token": "XXXXXXXXXX"})
+        method = "auth.revoke"
+        url = f"{SLACK_API_URL}/{method}"
+        async with self._session.post(url, {"token": self._token}) as res:
+            return await self._make_json_res(res, method, {"token": "XXXXXXXXXX"})
 
 
 class MsgType:
@@ -124,34 +131,6 @@ class MsgSubType:
 
 
 class AsyncApi(_ApiBase):
-    async def _make_json_res(self, res, method, payload):
-        json_res = await res.json()
-        if 200 <= res.status < 400 and json_res["ok"]:
-            return json_res
-        else:
-            res_body = await res.text()
-            print(
-                f"Error {res.status} during {method} {res.method} request: {res_body}\n"
-                f"payload: {payload}"
-            )
-            return
-
-    async def _get(self, method, params=None):
-        print("Request", method, params)
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                f"{SLACK_API_URL}/{method}", params=params, headers=self._headers
-            ) as res:
-                return await self._make_json_res(res, method, params)
-
-    async def _post(self, method, payload):
-        print("Posting to", method, payload)
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"{SLACK_API_URL}/{method}", headers=self._headers, json=payload
-            ) as res:
-                return await self._make_json_res(res, method, payload)
-
     async def add_reaction(self, channel, ts, reaction_name):
         payload = {"channel": channel, "timestamp": ts, "name": reaction_name}
         return await self._post("reactions.add", payload)
@@ -200,7 +179,7 @@ class AsyncApi(_ApiBase):
         await self._ws.send_json(message)
 
 
-class Channel(_SyncApiBase):
+class Channel(_ApiBase):
     def __init__(self, bot_token, channel_id):
         super().__init__(bot_token)
         self._channel_id = channel_id
@@ -209,11 +188,11 @@ class Channel(_SyncApiBase):
         return self._channel_id
 
     def _get(self, method):
-        return super()._get(method, {"channel": self._channel_id})
+        return self._run(super()._get(method, {"channel": self._channel_id}))
 
     def _post(self, method, payload):
         payload.update({"channel": self._channel_id})
-        return super()._post(method, payload)
+        return self._run(super()._post(method, payload))
 
     def info(self):
         return self._get("channels.info")
@@ -223,8 +202,9 @@ class Channel(_SyncApiBase):
 
     def post_message(self, text, attachments):
         # as_user is needed, so direct messages can be deleted.
-        # if DMs are sent to the user without as_user: True, they appear as if slackbot sent them
-        # and there will be no channel which can be referenced later to delete the sent messages
+        # if DMs are sent to the user without as_user: True, they appear
+        # as if slackbot sent them and there will be no channel which
+        # can be referenced later to delete the sent messages
         return self._post(
             "chat.postMessage",
             {"text": text, "attachments": attachments, "as_user": True},
@@ -240,18 +220,22 @@ class App:
         self._redirect_uri = redirect_uri
 
     def request_oauth_token(self, code):
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(self._request_oauth_token(code))
+
+    async def _request_oauth_token(self, code):
         # documentation: https://api.slack.com/methods/oauth.access
-        res = requests.post(
-            SLACK_API_URL + "/oauth.access",
-            {
-                "client_id": self._client_id,
-                "client_secret": self._client_secret,
-                "redirect_uri": self._redirect_uri,
-                "code": code,
-            },
-        )
-        # example in slack_messages/oauth.access.json
-        return res.json()
+        url = SLACK_API_URL + "/oauth.access"
+        payload = {
+            "client_id": self._client_id,
+            "client_secret": self._client_secret,
+            "redirect_uri": self._redirect_uri,
+            "code": code,
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=payload) as res:
+                # example in slack_messages/oauth.access.json
+                return await res.json()
 
     def make_button_url(self, state):
         params = {
