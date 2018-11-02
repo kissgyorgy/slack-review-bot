@@ -154,6 +154,7 @@ class Api(_ApiBase):
 
 
 class MsgType:
+    HELLO = "hello"
     TYPING = "typing"
     USER_TYPING = "user_typing"
     MESSAGE = "message"
@@ -195,6 +196,10 @@ class _RealtimeApi:
 
     async def __aexit__(self, exc_type, exc, tb):
         await self.close()
+
+    async def got_hello(self):
+        msg = await self.wait_messages().__anext__()
+        return msg["type"] == MsgType.HELLO
 
     async def wait_messages(self):
         async for msg in self._ws:

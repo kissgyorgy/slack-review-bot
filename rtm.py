@@ -1,3 +1,4 @@
+import time
 import asyncio
 from pprint import pprint
 import functools
@@ -84,8 +85,24 @@ def save_review_requests(msg, queries):
 
 async def rtm_connect(api, loop):
     async with await api.rtm_connect() as rtm:
+        if not await rtm.got_hello():
+            _count_down(10)
+            return
+
         async for msg in rtm.wait_messages():
             loop.create_task(process_message(api, rtm, msg, loop))
+
+
+def _count_down(from_sec):
+    print(
+        "Something happened during connecting to RTM API, got no hello message.\n"
+        "Quitting in ... ",
+        end="",
+    )
+    for sec in range(from_sec, 0, -1):
+        print(f"{sec}..", end="", flush=True)
+        time.sleep(1)
+    print("0.", flush=True)
 
 
 def main():
