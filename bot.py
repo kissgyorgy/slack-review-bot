@@ -128,12 +128,14 @@ class CronJob:
 
     def _delete_plus_two(self, review_requests):
         remaining_requests = []
+        requests_to_delete = []
         for rr in review_requests:
             if all(c.code_review == gerrit.CodeReview.PLUS_TWO for c in rr.get_changes()):
-                rr.delete()
+                requests_to_delete.append(rr.pk)
             else:
                 remaining_requests.append(rr)
 
+        ReviewRequest.objects.filter(id__in=requests_to_delete).delete()
         return remaining_requests
 
     def _make_postable_changes(self, review_requests):
