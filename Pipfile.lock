@@ -105,7 +105,6 @@
                 "sha256:8d1de6be099044ae61e55998b35de18a57499b946fe45781077f5cec4f73f0e0",
                 "sha256:ce7fee5c6558fe5dc8924993d994ccde75bb75b91cd82787cbd4c92b95a69f9c"
             ],
-            "markers": "extra == 'database'",
             "version": "==1.1.0"
         },
         "django-widget-tweaks": {
