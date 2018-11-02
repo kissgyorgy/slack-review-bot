@@ -57,6 +57,9 @@ class _ApiBase:
     async def _close_session(self):
         await self._session.close()
 
+    def _run(self, coro):
+        return self._loop.run_until_complete(coro)
+
     async def _make_json_res(self, res, method, payload):
         json_res = await res.json()
         if 200 <= res.status < 400 and json_res["ok"]:
@@ -94,14 +97,20 @@ class _ApiBase:
         async with self._session.post(url, headers=self._headers, json=payload) as res:
             return await self._make_json_res(res, method, payload)
 
-    def _run(self, coro):
-        return self._loop.run_until_complete(coro)
-
 
 class Api(_ApiBase):
+    def _get(self, method, params=None):
+        return self._run(super()._get(method, params))
+
+    def _get_all(self, method, field, params):
+        return self._run(super()._get_all(method, field, params))
+
+    def _post(self, method, payload):
+        return self._run(super()._post(method, payload))
+
     def list_all_channels(self):
         params = {"types": "public_channel,private_channel"}
-        return self._run(self._get_all("conversations.list", "channels", params))
+        return self._get_all("conversations.list", "channels", params)
 
     def get_channel_id(self, channel_name):
         name = channel_name.lstrip("#")
@@ -110,17 +119,38 @@ class Api(_ApiBase):
                 return channel["id"]
 
     def user_info(self, user_id):
-        return self._run(self._get("users.info", {"user": user_id}))
+        return self._get("users.info", {"user": user_id})
 
     def revoke_token(self):
         return self._run(self._revoke_token())
 
     async def _revoke_token(self):
-        # this method doesn't accept JSON body
         method = "auth.revoke"
         url = f"{SLACK_API_URL}/{method}"
+        # this method doesn't accept JSON body
         async with self._session.post(url, {"token": self._token}) as res:
             return await self._make_json_res(res, method, {"token": "XXXXXXXXXX"})
+
+    def channel_info(self, channel_id):
+        return self._get("channels.info", {"channel": channel_id})
+
+    def post_message(self, channel_id, text, attachments):
+        # as_user is needed, so direct messages can be deleted.
+        # if DMs are sent to the user without as_user: True, they appear
+        # as if slackbot sent them and there will be no channel which
+        # can be referenced later to delete the sent messages
+        return self._post(
+            "chat.postMessage",
+            {
+                "channel": channel_id,
+                "text": text,
+                "attachments": attachments,
+                "as_user": True,
+            },
+        )
+
+    def delete_message(self, channel_id, ts):
+        return self._post("chat.delete", {"channel": channel_id, "ts": ts})
 
 
 class MsgType:
@@ -183,38 +213,6 @@ class AsyncApi(_ApiBase):
             "thread_ts": ts,
         }
         await self._ws.send_json(message)
-
-
-class Channel(_ApiBase):
-    def __init__(self, bot_token, channel_id):
-        super().__init__(bot_token)
-        self._channel_id = channel_id
-
-    def __str__(self):
-        return self._channel_id
-
-    def _get(self, method):
-        return self._run(super()._get(method, {"channel": self._channel_id}))
-
-    def _post(self, method, payload):
-        payload.update({"channel": self._channel_id})
-        return self._run(super()._post(method, payload))
-
-    def info(self):
-        return self._get("channels.info")
-
-    def delete_message(self, ts):
-        return self._post("chat.delete", {"ts": ts})
-
-    def post_message(self, text, attachments):
-        # as_user is needed, so direct messages can be deleted.
-        # if DMs are sent to the user without as_user: True, they appear
-        # as if slackbot sent them and there will be no channel which
-        # can be referenced later to delete the sent messages
-        return self._post(
-            "chat.postMessage",
-            {"text": text, "attachments": attachments, "as_user": True},
-        )
 
 
 class App:

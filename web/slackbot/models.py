@@ -69,19 +69,19 @@ class SentMessage(models.Model):
     def __str__(self):
         return self.ts
 
-    def _delete_slack_channel(self):
+    def _delete_slack_message(self):
         print(f"Deleting message {self.ts} from channel {self.channel_id}")
-        slack_channel = slack.Channel(config.BOT_ACCESS_TOKEN, self.channel_id)
-        return slack_channel.delete_message(self.ts)
+        slack_api = slack.Api(config.BOT_ACCESS_TOKEN)
+        return slack_api.delete_message(self.channel_id, self.ts)
 
     def delete(self, *args, **kwargs):
-        res_json = self._delete_slack_channel()
+        res_json = self._delete_slack_message()
         if res_json is not None:
             return super().delete(*args, **kwargs)
         return 0, {"slackbot.SentMessage": 0}
 
     def force_delete(self, *args, **kwargs):
-        self._delete_slack_channel()
+        self._delete_slack_message()
         return super().delete(*args, **kwargs)
 
 

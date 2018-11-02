@@ -83,20 +83,21 @@ class CronJob:
     def __init__(self, gerrit_url, bot_access_token, crontab):
         self._gerrit = gerrit.Client(gerrit_url)
         self._crontab_changes_url = self._gerrit.changes_url(crontab.gerrit_query)
-        self._slack_channel = slack.Channel(bot_access_token, crontab.channel_id)
+        self._slack_api = slack.Api(bot_access_token)
         self._crontab = crontab
+        self._channel_id = crontab.channel_id
 
     def __str__(self):
-        return f"{self._crontab.gerrit_query} -> {self._slack_channel}"
+        return f"{self._crontab.gerrit_query} -> {self._channel_id}"
 
     def __repr__(self):
-        return f"CronJob(query='{self._crontab.gerrit_query}', channel='{self._slack_channel}')"
+        return f"CronJob(query='{self._crontab.gerrit_query}', channel='{self._channel_id}')"
 
     def run(self):
         self._delete_previous_messages()
 
         crontab_changes = [PostableChange(c) for c in self._crontab.get_changes()]
-        review_requests = ReviewRequest.objects.filter(channel_id=self._crontab.channel_id)
+        review_requests = ReviewRequest.objects.filter(channel_id=self._channel_id)
         remaining_requests = self._delete_plus_two(review_requests)
         review_request_changes = self._make_postable_changes(remaining_requests)
 
@@ -146,7 +147,7 @@ class CronJob:
         attachments = [
             slack.make_attachment(c.color, c.full_message(), c.url) for c in changes
         ]
-        return self._slack_channel.post_message(summary_link, attachments)
+        return self._slack_api.post_message(self._channel_id, summary_link, attachments)
 
     def _delete_previous_messages(self):
         for sent_message in SentMessage.objects.filter(crontab=self._crontab):
