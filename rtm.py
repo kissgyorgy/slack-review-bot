@@ -27,7 +27,7 @@ async def process_message(api, rtm, msg, loop):
     if msg["user"] == config.BOT_USER_ID:
         return
 
-    text = get_text(msg)
+    text = msg["text"].strip()
 
     gerrit_urls = parse_gerrit_urls(text)
     if gerrit_urls:
@@ -48,14 +48,6 @@ async def handle_restart(rtm, msg):
     content = msg["content"]
     if all(w in content for w in ("restart", "@Review")):
         await rtm.close()
-
-
-def get_text(msg):
-    subtype = msg.get("subtype")
-    if subtype == MsgSubType.MESSAGE_CHANGED:
-        return msg["message"]["text"]
-    else:
-        return msg["text"]
 
 
 def parse_gerrit_urls(text):
