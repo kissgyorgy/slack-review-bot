@@ -20,12 +20,12 @@ async def process_message(api, rtm, msg, loop):
         return
 
     # Don't react to bot's own messages :D
-    if msg["user"] == config.BOT_USER_ID:
+    if msg["user"] == rtm.bot_id:
         return
 
     text = msg["text"].strip()
 
-    if text == "@Review restart":
+    if text == f"{rtm.bot_mention} restart":
         await rtm.close()
 
     gerrit_urls = parse_gerrit_urls(text)

@@ -194,13 +194,21 @@ class _RealtimeApi:
         self._loop = loop
 
     async def __aenter__(self):
-        res = await self._get_coro
-        print("Connected to RTM api:", res)
-        self._ws = await self._ws_connect(res["url"])
+        self._res = await self._get_coro
+        print("Connected to RTM api:", self._res)
+        self._ws = await self._ws_connect(self._res["url"])
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
         await self.close()
+
+    @property
+    def bot_id(self):
+        return self._res["self"]["id"]
+
+    @property
+    def bot_mention(self):
+        return f"<@{self.bot_id}>"
 
     async def got_hello(self):
         msg = await self.wait_messages().__anext__()
