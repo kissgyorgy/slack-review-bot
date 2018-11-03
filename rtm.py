@@ -29,16 +29,19 @@ async def process_message(api, rtm, msg, loop):
 
     text = get_text(msg)
 
-    queries = parse_gerrit_queries(text)
-    if queries:
-        print(f"Found review links, adding them to queue: {queries}")
-        loop.create_task(api.add_reaction(msg["channel"], msg["ts"], "review"))
+    gerrit_urls = parse_gerrit_urls(text)
+    if gerrit_urls:
+        print(f"Found review links, adding them to queue: {gerrit_urls}")
         # with loop.create_task, it would raise an AssertionError:
         #   File "/usr/lib/python3.6/asyncio/coroutines.py", line 276, in _format_coroutine
         # assert iscoroutine(coro)
         # AssertionError
         # https://bugs.python.org/issue34071
-        await loop.run_in_executor(None, save_review_requests, msg, queries)
+        filtered_urls, duplicate_requests = await loop.run_in_executor(
+            None, filter_duplicate_requests, gerrit_urls
+        )
+        loop.create_task(add_reaction(api, rtm, duplicate_requests, msg, loop))
+        await loop.run_in_executor(None, save_review_requests, msg, filtered_urls)
 
 
 async def handle_restart(rtm, msg):
@@ -55,27 +58,45 @@ def get_text(msg):
         return msg["text"]
 
 
-def parse_gerrit_queries(text):
-    rv = []
-    for link in slack.parse_links(text):
-        if link.startswith(config.GERRIT_URL):
-            query = (link, gerrit.parse_query(link))
-            rv.append(query)
-    return rv
+def parse_gerrit_urls(text):
+    return [url for url in slack.parse_links(text) if url.startswith(config.GERRIT_URL)]
 
 
-def save_review_requests(msg, queries):
+def filter_duplicate_requests(gerrit_urls):
+    duplicate_requests = list(ReviewRequest.objects.filter(gerrit_url__in=gerrit_urls))
+    existing_urls = {rr.gerrit_url for rr in duplicate_requests}
+    filtered_urls = [url for url in gerrit_urls if url not in existing_urls]
+    return filtered_urls, duplicate_requests
+
+
+async def add_reaction(api, rtm, duplicate_requests, msg, loop):
+    channel_id, ts = msg["channel"], msg["ts"]
+
+    if duplicate_requests:
+        loop.create_task(api.add_reaction(channel_id, ts, "no_entry_sign"))
+        # the first will always be a duplicate, we don't have to be very detailed
+        permalink = await api.get_permalink(channel_id, duplicate_requests[0].ts)
+        if permalink is not None:
+            message = f"Vót má: {permalink}"
+        else:
+            message = f"Már benne van a queue-ban"
+        loop.create_task(rtm.reply_in_thread(channel_id, ts, message))
+    else:
+        loop.create_task(api.add_reaction(channel_id, ts, "review"))
+
+
+def save_review_requests(msg, gerrit_urls):
     objs = []
     channel_id = msg["channel"]
     crontab = Crontab.objects.filter(channel_id=channel_id).first()
-    for gerrit_url, gerrit_query in queries:
+    for url in gerrit_urls:
         rr = ReviewRequest(
             crontab=crontab,
             ts=msg["ts"],
             slack_user_id=msg["user"],
             channel_id=channel_id,
-            gerrit_url=gerrit_url,
-            gerrit_query=gerrit_query,
+            gerrit_url=url,
+            gerrit_query=gerrit.parse_query(url),
         )
         objs.append(rr)
 

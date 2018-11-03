@@ -172,6 +172,11 @@ class AsyncApi(_ApiBase):
         payload = {"channel": channel, "timestamp": ts, "name": reaction_name}
         return await self._post("reactions.add", payload)
 
+    async def get_permalink(self, channel_id, ts):
+        payload = {"channel": channel_id, "message_ts": ts}
+        res = await self._get("chat.getPermalink", payload)
+        return res["permalink"] if res is not None else None
+
     def rtm_connect(self):
         return self._make_rtm_api("rtm.connect")
 
