@@ -16,10 +16,6 @@ async def process_message(api, rtm, msg, loop):
 
     msgtype = msg["type"]
 
-    if msgtype == MsgType.DESKTOP_NOTIFICATION:
-        await handle_restart(rtm, msg)
-        return
-
     if msgtype != MsgType.MESSAGE or msg.get("subtype"):
         return
 
@@ -28,6 +24,9 @@ async def process_message(api, rtm, msg, loop):
         return
 
     text = msg["text"].strip()
+
+    if text == "@Review restart":
+        await rtm.close()
 
     gerrit_urls = parse_gerrit_urls(text)
     if gerrit_urls:
@@ -44,10 +43,6 @@ async def process_message(api, rtm, msg, loop):
         await loop.run_in_executor(None, save_review_requests, msg, filtered_urls)
 
 
-async def handle_restart(rtm, msg):
-    content = msg["content"]
-    if all(w in content for w in ("restart", "@Review")):
-        await rtm.close()
 
 
 def parse_gerrit_urls(text):
