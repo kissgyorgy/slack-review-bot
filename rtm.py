@@ -1,4 +1,7 @@
 import time
+import enum
+import json
+import random
 import asyncio
 from pprint import pprint
 import functools
@@ -7,7 +10,12 @@ from constance import config
 import gerrit
 import slack
 from slack import MsgType, MsgSubType
-from slackbot.models import Crontab, ReviewRequest
+from slackbot.models import Crontab, SentMessage, ReviewRequest
+
+
+class BotCommand(enum.Enum):
+    RESTART = ("restart",)
+    ROULETTE = ":game_die:", "rulett", "roulette"
 
 
 async def process_message(api, rtm, msg, loop):
@@ -25,8 +33,11 @@ async def process_message(api, rtm, msg, loop):
 
     text = msg["text"].strip()
 
-    if text == f"{rtm.bot_mention} restart":
-        await rtm.close()
+    if text.startswith(rtm.bot_mention):
+        bot_command = parse_command(text)
+        await handle_bot_commands(api, rtm, bot_command, msg, loop)
+        # Don't parse urls, the command might already did something with it
+        return
 
     gerrit_urls = parse_gerrit_urls(text)
     if gerrit_urls:
@@ -43,6 +54,38 @@ async def process_message(api, rtm, msg, loop):
         await loop.run_in_executor(None, save_review_requests, msg, filtered_urls)
 
 
+def parse_command(text):
+    split = text.split()
+    if len(split) != 2:
+        # TODO: ephemeral reply about invalid command
+        pass
+    command_text = split[1]
+    for command in (b for b in BotCommand if command_text in b.value):
+        print(f"Found bot command: {command}")
+        return command
+    else:
+        return None
+
+
+async def handle_bot_commands(api, rtm, bot_command, msg, loop):
+    if bot_command is None:
+        return
+
+    elif bot_command is BotCommand.RESTART:
+        await rtm.close()
+
+    elif bot_command is BotCommand.ROULETTE:
+        attachment = await loop.run_in_executor(None, get_random_attachment, msg)
+        await api.post_message(
+            msg["channel"], "Ezt dobta a gép:", [attachment], msg["ts"]
+        )
+
+
+def get_random_attachment(msg):
+    sent_messages = SentMessage.objects.filter(channel_id=msg["channel"])
+    sm = sent_messages.first()
+    attachments = json.loads(sm.message)["attachments"]
+    return random.choice(attachments)
 
 
 def parse_gerrit_urls(text):

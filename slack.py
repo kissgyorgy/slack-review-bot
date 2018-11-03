@@ -177,6 +177,22 @@ class AsyncApi(_ApiBase):
         res = await self._get("chat.getPermalink", payload)
         return res["permalink"] if res is not None else None
 
+    async def post_message(self, channel_id, text, attachments, thread_ts=None):
+        # as_user is needed, so direct messages can be deleted.
+        # if DMs are sent to the user without as_user: True, they appear
+        # as if slackbot sent them and there will be no channel which
+        # can be referenced later to delete the sent messages
+        return await self._post(
+            "chat.postMessage",
+            {
+                "channel": channel_id,
+                "text": text,
+                "attachments": attachments,
+                "as_user": True,
+                "thread_ts": thread_ts,
+            },
+        )
+
     def rtm_connect(self):
         return self._make_rtm_api("rtm.connect")
 

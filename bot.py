@@ -1,6 +1,7 @@
 #!/usr/bin/env python3.6
 
 import time
+import json
 import textwrap
 import datetime as dt
 import threading
@@ -130,7 +131,9 @@ class CronJob:
         remaining_requests = []
         requests_to_delete = []
         for rr in review_requests:
-            if all(c.code_review == gerrit.CodeReview.PLUS_TWO for c in rr.get_changes()):
+            if all(
+                c.code_review == gerrit.CodeReview.PLUS_TWO for c in rr.get_changes()
+            ):
                 requests_to_delete.append(rr.pk)
             else:
                 remaining_requests.append(rr)
@@ -157,12 +160,11 @@ class CronJob:
             sent_message.delete()
 
     def _save_message(self, json_res):
-        jsm = json_res["message"]
         sm = SentMessage(
             crontab=self._crontab,
-            ts=jsm["ts"],
+            ts=json_res["message"]["ts"],
             channel_id=json_res["channel"],
-            message=jsm,
+            message=json.dumps(json_res["message"]),
         )
         sm.save()
         return sm
