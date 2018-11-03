@@ -2,6 +2,7 @@
 
 import time
 import json
+import asyncio
 import textwrap
 import datetime as dt
 import threading
@@ -94,7 +95,7 @@ class CronJob:
     def __repr__(self):
         return f"CronJob(query='{self._crontab.gerrit_query}', channel='{self._channel_id}')"
 
-    def run(self):
+    async def run(self):
         self._delete_previous_messages()
 
         crontab_changes = [PostableChange(c) for c in self._crontab.get_changes()]
@@ -221,34 +222,29 @@ def make_cronjobs():
     return cronjobs
 
 
+def run_cronjob(crontab, cronjob, loop):
+    loop.create_task(cronjob.run())
+    crontab.calc_next()
+    schedule(crontab, cronjob, loop)
+
+
+def schedule(crontab, cronjob, loop):
+    print(f"Scheduled {crontab} for next run: {crontab.next}")
+    until_next = crontab.next - dt.datetime.now(tz=dt.timezone.utc)
+    next_ts = loop.time() + until_next.total_seconds()
+    loop.call_at(next_ts, run_cronjob, crontab, cronjob, loop)
+
+
 def main():
     print("Started main")
-
+    loop = asyncio.get_event_loop()
     django.setup()
     print(Crontab.objects.all())
-    WaitForMessages().start()
 
-    should_reload.set()
+    for crontab, cronjob in make_cronjobs():
+        schedule(crontab, cronjob, loop)
 
-    while True:
-        block_if_paused()
-
-        if should_reload.is_set():
-            print("Reloading...")
-            cronjobs = make_cronjobs()
-            should_reload.clear()
-
-        now = dt.datetime.now(dt.timezone.utc)
-        rounded_now = now.replace(second=0, microsecond=0)
-        print(now, "Checking crontabs to run...")
-
-        for crontab, cronjob in cronjobs:
-            if crontab.next == rounded_now:
-                print("Running job...", cronjob)
-                cronjob.run()
-                crontab.calc_next()
-
-        time.sleep(20)
+    loop.run_forever()
 
 
 if __name__ == "__main__":
