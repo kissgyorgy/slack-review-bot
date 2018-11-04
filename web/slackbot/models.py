@@ -14,7 +14,7 @@ class GerritChangesMixin:
 
     def get_changes(self):
         if self._changes is None:
-            client = gerrit.Client(config.GERRIT_URL)
+            client = gerrit.Api(config.GERRIT_URL)
             self._changes = client.get_changes(self.gerrit_query)
         return self._changes
 

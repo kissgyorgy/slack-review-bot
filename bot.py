@@ -82,7 +82,7 @@ class PostableChange:
 
 class CronJob:
     def __init__(self, gerrit_url, bot_access_token, crontab):
-        self._gerrit = gerrit.Client(gerrit_url)
+        self._gerrit = gerrit.Api(gerrit_url)
         self._crontab_changes_url = self._gerrit.changes_url(crontab.gerrit_query)
         self._slack_api = slack.Api(bot_access_token)
         self._crontab = crontab

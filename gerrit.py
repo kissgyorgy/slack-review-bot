@@ -96,7 +96,7 @@ def parse_query(url):
         raise ValueError("Invalid URL")
 
 
-class Client:
+class Api:
     def __init__(self, gerrit_url):
         self._gerrit_url = gerrit_url
         # For +1 and -1 information, LABELS option has to be requested. See:

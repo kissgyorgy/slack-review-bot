@@ -24,5 +24,5 @@ def test_invalid_parse_url():
 
 class TestGerritClient:
     def test_changes_url(self):
-        client = gerrit.Client("http://some.url")
+        client = gerrit.Api("http://some.url")
         assert client.changes_url("some-query") == "http://some.url/#/q/some-query"
