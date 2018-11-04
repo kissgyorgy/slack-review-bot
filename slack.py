@@ -40,7 +40,7 @@ def make_attachment(color, author_name, author_link):
     return {"color": color, "author_name": author_name, "author_link": author_link}
 
 
-class _ApiBase:
+class AsyncApi:
     def __init__(self, token):
         self._token = token
         self._headers = {
@@ -52,13 +52,7 @@ class _ApiBase:
         self._session = aiohttp.ClientSession(loop=self._loop)
 
     def __del__(self):
-        self._run(self._close_session())
-
-    async def _close_session(self):
-        await self._session.close()
-
-    def _run(self, coro):
-        return self._loop.run_until_complete(coro)
+        self._loop.create_task(self._session.close())
 
     async def _make_json_res(self, res, method, payload):
         json_res = await res.json()
@@ -97,77 +91,6 @@ class _ApiBase:
         async with self._session.post(url, headers=self._headers, json=payload) as res:
             return await self._make_json_res(res, method, payload)
 
-
-class Api(_ApiBase):
-    def _get(self, method, params=None):
-        return self._run(super()._get(method, params))
-
-    def _get_all(self, method, field, params):
-        return self._run(super()._get_all(method, field, params))
-
-    def _post(self, method, payload):
-        return self._run(super()._post(method, payload))
-
-    def list_all_channels(self):
-        params = {"types": "public_channel,private_channel"}
-        return self._get_all("conversations.list", "channels", params)
-
-    def get_channel_id(self, channel_name):
-        name = channel_name.lstrip("#")
-        for channel in self.list_all_channels():
-            if channel["name"] == name:
-                return channel["id"]
-
-    def user_info(self, user_id):
-        return self._get("users.info", {"user": user_id})
-
-    def revoke_token(self):
-        return self._run(self._revoke_token())
-
-    async def _revoke_token(self):
-        method = "auth.revoke"
-        url = f"{SLACK_API_URL}/{method}"
-        # this method doesn't accept JSON body
-        async with self._session.post(url, {"token": self._token}) as res:
-            return await self._make_json_res(res, method, {"token": "XXXXXXXXXX"})
-
-    def channel_info(self, channel_id):
-        return self._get("channels.info", {"channel": channel_id})
-
-    def post_message(self, channel_id, text, attachments):
-        # as_user is needed, so direct messages can be deleted.
-        # if DMs are sent to the user without as_user: True, they appear
-        # as if slackbot sent them and there will be no channel which
-        # can be referenced later to delete the sent messages
-        return self._post(
-            "chat.postMessage",
-            {
-                "channel": channel_id,
-                "text": text,
-                "attachments": attachments,
-                "as_user": True,
-            },
-        )
-
-    def delete_message(self, channel_id, ts):
-        return self._post("chat.delete", {"channel": channel_id, "ts": ts})
-
-
-class MsgType:
-    HELLO = "hello"
-    TYPING = "typing"
-    USER_TYPING = "user_typing"
-    MESSAGE = "message"
-    DESKTOP_NOTIFICATION = "desktop_notification"
-    GOODBYE = "goodbye"
-
-
-class MsgSubType:
-    MESSAGE_CHANGED = "message_changed"
-    MESSAGE_DELETED = "message_deleted"
-
-
-class AsyncApi(_ApiBase):
     async def add_reaction(self, channel, ts, reaction_name):
         payload = {"channel": channel, "timestamp": ts, "name": reaction_name}
         return await self._post("reactions.add", payload)
@@ -176,6 +99,17 @@ class AsyncApi(_ApiBase):
         payload = {"channel": channel_id, "message_ts": ts}
         res = await self._get("chat.getPermalink", payload)
         return res["permalink"] if res is not None else None
+
+    async def list_all_channels(self):
+        params = {"types": "public_channel,private_channel"}
+        return await self._get_all("conversations.list", "channels", params)
+
+    async def get_channel_id(self, channel_name):
+        name = channel_name.lstrip("#")
+        # TODO: make it async for
+        for channel in await self.list_all_channels():
+            if channel["name"] == name:
+                return channel["id"]
 
     async def post_message(self, channel_id, text, attachments, thread_ts=None):
         # as_user is needed, so direct messages can be deleted.
@@ -193,6 +127,22 @@ class AsyncApi(_ApiBase):
             },
         )
 
+    async def delete_message(self, channel_id, ts):
+        return await self._post("chat.delete", {"channel": channel_id, "ts": ts})
+
+    async def user_info(self, user_id):
+        return await self._get("users.info", {"user": user_id})
+
+    async def revoke_token(self):
+        method = "auth.revoke"
+        url = f"{SLACK_API_URL}/{method}"
+        # this method doesn't accept JSON body
+        async with self._session.post(url, {"token": self._token}) as res:
+            return await self._make_json_res(res, method, {"token": "XXXXXXXXXX"})
+
+    async def channel_info(self, channel_id):
+        return await self._get("channels.info", {"channel": channel_id})
+
     def rtm_connect(self):
         return self._make_rtm_api("rtm.connect")
 
@@ -201,6 +151,20 @@ class AsyncApi(_ApiBase):
 
     def _make_rtm_api(self, method):
         return _RealtimeApi(self._get(method), self._session.ws_connect, self._loop)
+
+
+class MsgType:
+    HELLO = "hello"
+    TYPING = "typing"
+    USER_TYPING = "user_typing"
+    MESSAGE = "message"
+    DESKTOP_NOTIFICATION = "desktop_notification"
+    GOODBYE = "goodbye"
+
+
+class MsgSubType:
+    MESSAGE_CHANGED = "message_changed"
+    MESSAGE_DELETED = "message_deleted"
 
 
 class _RealtimeApi:
@@ -264,6 +228,22 @@ class _RealtimeApi:
             "thread_ts": ts,
         }
         await self._ws.send_json(message)
+
+
+class Api(AsyncApi):
+    def __getattribute__(self, name):
+        if name.startswith("_"):
+            return super().__getattribute__(name)
+
+        parent_class = super()
+        parent_attr = getattr(parent_class, name)
+        if not asyncio.iscoroutinefunction(parent_attr):
+            return super().__getattribute__(name)
+
+        def call_sync(*args, **kwargs):
+            parent_coro = parent_attr(*args, **kwargs)
+            return self._loop.run_until_complete(parent_coro)
+        return call_sync
 
 
 class App:
