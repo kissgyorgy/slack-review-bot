@@ -232,17 +232,14 @@ class _RealtimeApi:
 
 class Api(AsyncApi):
     def __getattribute__(self, name):
-        if name.startswith("_"):
-            return super().__getattribute__(name)
-
-        parent_class = super()
-        parent_attr = getattr(parent_class, name)
-        if not asyncio.iscoroutinefunction(parent_attr):
-            return super().__getattribute__(name)
+        attr = super().__getattribute__(name)
+        if name.startswith("_") or not asyncio.iscoroutinefunction(attr):
+            return attr
 
         def call_sync(*args, **kwargs):
-            parent_coro = parent_attr(*args, **kwargs)
-            return self._loop.run_until_complete(parent_coro)
+            coro = attr(*args, **kwargs)
+            return self._loop.run_until_complete(coro)
+
         return call_sync
 
 
