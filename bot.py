@@ -221,6 +221,12 @@ def make_cronjobs():
     return cronjobs
 
 
+def get_rounded_now():
+    now = dt.datetime.now(dt.timezone.utc)
+    print(now, "Checking crontabs to run...")
+    return now.replace(second=0, microsecond=0)
+
+
 def main():
     print("Started main")
 
@@ -238,12 +244,10 @@ def main():
             cronjobs = make_cronjobs()
             should_reload.clear()
 
-        now = dt.datetime.now(dt.timezone.utc)
-        rounded_now = now.replace(second=0, microsecond=0)
-        print(now, "Checking crontabs to run...")
+        now = get_rounded_now()
 
         for crontab, cronjob in cronjobs:
-            if crontab.next == rounded_now:
+            if crontab.next == now:
                 print("Running job...", cronjob)
                 cronjob.run()
                 crontab.calc_next()
