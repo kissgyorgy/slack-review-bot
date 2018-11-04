@@ -1,6 +1,7 @@
 import re
 import json
 import asyncio
+from functools import lru_cache
 from urllib.parse import urlencode
 import aiohttp
 
@@ -231,6 +232,7 @@ class _RealtimeApi:
 
 
 class Api(AsyncApi):
+    @lru_cache(maxsize=None)
     def __getattribute__(self, name):
         attr = super().__getattribute__(name)
         if name.startswith("_") or not asyncio.iscoroutinefunction(attr):
