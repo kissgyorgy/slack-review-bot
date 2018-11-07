@@ -100,7 +100,7 @@ class CronJob:
         return f"CronJob(query='{self._crontab.gerrit_query}', channel='{self._channel_id}')"
 
     async def run(self):
-        self._loop.create_task(self._delete_previous_messages())
+        await self._delete_previous_messages()
 
         crontab_changes = await self._get_crontab_changes()
 
