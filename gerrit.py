@@ -64,21 +64,6 @@ class Change:
             return Verified.FAILED
 
 
-async def _get(*args, **kwargs):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(*args, **kwargs) as res:
-            return await res.text()
-
-
-def get(api_url):
-    loop = asyncio.get_event_loop()
-    res_body = loop.run_until_complete(_get(api_url, ssl=False))
-    # There is a )]}' sequence at the start of each response...
-    # we can't process it simply as JSON because of that.
-    fixed_body = res_body[4:]
-    return json.loads(fixed_body)
-
-
 def parse_query(url):
     """Parses the url and get the query from it."""
     if not url.startswith("http"):
@@ -96,7 +81,7 @@ def parse_query(url):
         raise ValueError("Invalid URL")
 
 
-class Api:
+class AsyncApi:
     def __init__(self, gerrit_url):
         self._gerrit_url = gerrit_url
         # For +1 and -1 information, LABELS option has to be requested. See:
@@ -104,9 +89,23 @@ class Api:
         # for owner name, DETAILED_ACCOUNTS:
         # https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#detailed-accounts
         self._changes_api_url = f"{gerrit_url}/changes/?o=LABELS&o=DETAILED_ACCOUNTS&q="
+        self._loop = asyncio.get_event_loop()
+        self._session = aiohttp.ClientSession(loop=self._loop)
 
-    def get_changes(self, gerrit_query):
-        gerrit_change_list = get(self._changes_api_url + gerrit_query)
+    def __del__(self):
+        self._loop.create_task(self._session.close())
+
+    async def _get(self, url):
+        async with self._session.get(url, ssl=False) as res:
+            res_body = await res.text()
+
+        # There is a )]}' sequence at the start of each response.
+        # We can't process it simply as JSON because of that.
+        fixed_body = res_body[4:]
+        return json.loads(fixed_body)
+
+    async def get_changes(self, gerrit_query):
+        gerrit_change_list = await self._get(self._changes_api_url + gerrit_query)
         return [Change(self._gerrit_url, c) for c in gerrit_change_list]
 
     def changes_url(self, gerrit_query):
