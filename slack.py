@@ -42,14 +42,14 @@ def make_attachment(color, author_name, author_link):
 
 
 class AsyncApi:
-    def __init__(self, token):
+    def __init__(self, token, loop=None):
         self._token = token
         self._headers = {
             "Authorization": "Bearer " + token,
             # Slack needs a charset, otherwise it will send a warning in every response...
             "Content-Type": "application/json; charset=utf-8",
         }
-        self._loop = asyncio.get_event_loop()
+        self._loop = loop or asyncio.get_event_loop()
         self._session = aiohttp.ClientSession(loop=self._loop)
 
     def __del__(self):
@@ -232,6 +232,15 @@ class _RealtimeApi:
 
 
 class Api(AsyncApi):
+    def __init__(self, token):
+        try:
+            self._loop = asyncio.get_event_loop()
+        except RuntimeError:
+            # when running in a thread, get_event_loop doesn't create another one
+            self._loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self._loop)
+        super().__init__(token, self._loop)
+
     @lru_cache(maxsize=None)
     def __getattribute__(self, name):
         attr = super().__getattribute__(name)

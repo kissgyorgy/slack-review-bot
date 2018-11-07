@@ -7,19 +7,7 @@ import slack
 import gerrit
 
 
-class GerritChangesMixin:
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._changes = None
-
-    def get_changes(self):
-        if self._changes is None:
-            client = gerrit.Api(config.GERRIT_URL)
-            self._changes = client.get_changes(self.gerrit_query)
-        return self._changes
-
-
-class Crontab(GerritChangesMixin, models.Model):
+class Crontab(models.Model):
     channel_name = models.CharField(max_length=100, blank=True)
     channel_id = models.CharField(
         max_length=30,
@@ -85,7 +73,7 @@ class SentMessage(models.Model):
         return super().delete(*args, **kwargs)
 
 
-class ReviewRequest(GerritChangesMixin, models.Model):
+class ReviewRequest(models.Model):
     crontab = models.ForeignKey(
         Crontab,
         on_delete=models.SET_NULL,
