@@ -2,10 +2,12 @@
 
 import time
 import json
+import atexit
 import asyncio
 import textwrap
 import datetime as dt
 import threading
+import aiohttp
 import uwsgi
 from constance import config
 import slack
@@ -82,13 +84,14 @@ class PostableChange:
 
 
 class CronJob:
-    def __init__(self, gerrit_url, bot_access_token, crontab):
-        self._gerrit = gerrit.AsyncApi(gerrit_url)
-        self._slack = slack.AsyncApi(bot_access_token)
+    def __init__(self, gerrit_url, bot_access_token, crontab, loop, session):
+        self._loop = loop
+        self._gerrit = gerrit.AsyncApi(gerrit_url, session)
+        self._slack = slack.AsyncApi(bot_access_token, self._loop, session)
+
         self._crontab = crontab
         self._channel_id = crontab.channel_id
         self._crontab_changes_url = self._gerrit.changes_url(crontab.gerrit_query)
-        self._loop = asyncio.get_event_loop()
 
     def __str__(self):
         return f"{self._crontab.gerrit_query} -> {self._channel_id}"
@@ -218,14 +221,14 @@ class WaitForMessages(threading.Thread):
                 should_reload.set()
 
 
-def make_cronjobs():
+def make_cronjobs(loop, session):
     print("Loading settings and crontabs from db...")
     gerrit_url = config.GERRIT_URL
     bot_access_token = config.BOT_ACCESS_TOKEN
 
     cronjobs = []
     for crontab in Crontab.objects.exclude(gerrit_query=""):
-        cronjob = CronJob(gerrit_url, bot_access_token, crontab)
+        cronjob = CronJob(gerrit_url, bot_access_token, crontab, loop, session)
         cronjobs.append((crontab, cronjob))
 
     print("Cronjobs:", cronjobs)
@@ -238,7 +241,7 @@ def get_rounded_now():
     return now.replace(second=0, microsecond=0)
 
 
-async def run_crontabs(loop):
+async def run_crontabs(loop, session):
     should_reload.set()
 
     while True:
@@ -246,7 +249,7 @@ async def run_crontabs(loop):
 
         if should_reload.is_set():
             print("Reloading...")
-            cronjobs = make_cronjobs()
+            cronjobs = make_cronjobs(loop, session)
             should_reload.clear()
 
         now = get_rounded_now()
@@ -268,7 +271,11 @@ def main():
     WaitForMessages().start()
 
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(run_crontabs(loop))
+    session = aiohttp.ClientSession(loop=loop)
+    try:
+        loop.run_until_complete(run_crontabs(loop, session))
+    finally:
+        loop.run_until_complete(session.close())
 
 
 if __name__ == "__main__":

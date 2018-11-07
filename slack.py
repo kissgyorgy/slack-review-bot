@@ -42,18 +42,15 @@ def make_attachment(color, author_name, author_link):
 
 
 class AsyncApi:
-    def __init__(self, token, loop=None):
+    def __init__(self, token, loop, session):
         self._token = token
         self._headers = {
             "Authorization": "Bearer " + token,
             # Slack needs a charset, otherwise it will send a warning in every response...
             "Content-Type": "application/json; charset=utf-8",
         }
-        self._loop = loop or asyncio.get_event_loop()
-        self._session = aiohttp.ClientSession(loop=self._loop)
-
-    def __del__(self):
-        self._loop.create_task(self._session.close())
+        self._loop = loop
+        self._session = session
 
     async def _make_json_res(self, res, method, payload):
         json_res = await res.json()
@@ -239,7 +236,9 @@ class Api(AsyncApi):
             # when running in a thread, get_event_loop doesn't create another one
             self._loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self._loop)
-        super().__init__(token, self._loop)
+
+        self._session = aiohttp.ClientSession(loop=self._loop)
+        super().__init__(token, self._loop, self._session)
 
     @lru_cache(maxsize=None)
     def __getattribute__(self, name):

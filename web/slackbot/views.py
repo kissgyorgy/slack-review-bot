@@ -1,3 +1,4 @@
+import asyncio
 from django.views import generic
 from django.db import transaction
 from django.contrib import messages
@@ -5,6 +6,7 @@ from django.shortcuts import redirect
 from django.core.exceptions import SuspiciousOperation
 from django.views.decorators.http import require_POST
 from constance import config
+import aiohttp
 import slack
 from . import models as m
 from . import forms as f
@@ -111,7 +113,13 @@ def slack_oauth(request):
 @require_POST
 def run_crontab(request, crontab_id):
     crontab = m.Crontab.objects.get(pk=crontab_id)
-    cronjob = bot.CronJob(config.GERRIT_URL, config.BOT_ACCESS_TOKEN, crontab)
-    cronjob.run()
+    loop = asyncio.get_event_loop()
+    session = aiohttp.ClientSession(loop=loop)
+    cronjob = bot.CronJob(
+        config.GERRIT_URL, config.BOT_ACCESS_TOKEN, crontab, loop, session
+    )
+    loop.run_until_complete(cronjob.run())
+    loop.run_until_complete(session.close())
+
     messages.success(request, "Patch set updated.")
     return redirect("/")

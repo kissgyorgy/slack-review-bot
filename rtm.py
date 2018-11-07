@@ -2,9 +2,11 @@ import time
 import enum
 import json
 import random
+import atexit
 import asyncio
 from pprint import pprint
 import functools
+import aiohttp
 import django
 from constance import config
 import gerrit
@@ -158,11 +160,17 @@ def _count_down(from_sec):
 
 def main():
     django.setup()
-    api = slack.AsyncApi(config.BOT_ACCESS_TOKEN)
+
     loop = asyncio.get_event_loop()
-    # run_until_complete instead of run_forever, because
-    # uwsgi can restart it if it crashes
-    loop.run_until_complete(rtm_connect(api, loop))
+    session = aiohttp.ClientSession(loop=loop)
+    api = slack.AsyncApi(config.BOT_ACCESS_TOKEN, loop, session)
+
+    try:
+        # run_until_complete instead of run_forever, because
+        # uwsgi can restart it if crashes
+        loop.run_until_complete(rtm_connect(api, loop))
+    finally:
+        loop.run_until_complete(session.close())
 
 
 if __name__ == "__main__":

@@ -82,18 +82,14 @@ def parse_query(url):
 
 
 class AsyncApi:
-    def __init__(self, gerrit_url):
+    def __init__(self, gerrit_url, session):
         self._gerrit_url = gerrit_url
         # For +1 and -1 information, LABELS option has to be requested. See:
         # https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#detailed-labels
         # for owner name, DETAILED_ACCOUNTS:
         # https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#detailed-accounts
         self._changes_api_url = f"{gerrit_url}/changes/?o=LABELS&o=DETAILED_ACCOUNTS&q="
-        self._loop = asyncio.get_event_loop()
-        self._session = aiohttp.ClientSession(loop=self._loop)
-
-    def __del__(self):
-        self._loop.create_task(self._session.close())
+        self._session = session
 
     async def _get(self, url):
         async with self._session.get(url, ssl=False) as res:
