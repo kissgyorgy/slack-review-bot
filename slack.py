@@ -194,7 +194,6 @@ class _RealtimeApi:
 
     async def wait_messages(self):
         async for msg in self._ws:
-            print("RTM message:", msg.data)
             if msg.type == aiohttp.WSMsgType.TEXT:
                 message_json = json.loads(msg.data)
                 if message_json.get("type") == MsgType.GOODBYE:

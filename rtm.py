@@ -24,14 +24,14 @@ async def process_message(api, rtm, msg, loop):
     if "ok" in msg:
         return
 
-    msgtype = msg["type"]
-
-    if msgtype != MsgType.MESSAGE or msg.get("subtype"):
+    if msg["type"] != MsgType.MESSAGE or msg.get("subtype"):
         return
 
     # Don't react to bot's own messages :D
     if msg["user"] == rtm.bot_id:
         return
+
+    print("Processing RTM message:", msg)
 
     text = msg["text"].strip()
 
@@ -141,6 +141,8 @@ async def rtm_connect(api, loop):
         if not await rtm.got_hello():
             _count_down(10)
             return
+
+        print("Got hello")
 
         async for msg in rtm.wait_messages():
             loop.create_task(process_message(api, rtm, msg, loop))
