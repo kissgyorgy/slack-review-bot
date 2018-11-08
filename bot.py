@@ -8,6 +8,7 @@ import textwrap
 import datetime as dt
 import threading
 import aiohttp
+from concurrent.futures import ThreadPoolExecutor
 import uwsgi
 from constance import config
 import slack
@@ -271,6 +272,7 @@ def main():
     WaitForMessages().start()
 
     loop = asyncio.get_event_loop()
+    loop.set_default_executor(ThreadPoolExecutor(max_workers=1))
     session = aiohttp.ClientSession(loop=loop)
     try:
         loop.run_until_complete(run_crontabs(loop, session))
