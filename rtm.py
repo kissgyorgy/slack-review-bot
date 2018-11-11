@@ -9,10 +9,12 @@ import functools
 import aiohttp
 import django
 from constance import config
+import uwsgi
 import gerrit
 import slack
 from slack import MsgType, MsgSubType
 from slackbot.models import Crontab, SentMessage, ReviewRequest
+from bot import MuleMessage
 
 
 class BotCommand(enum.Enum):
@@ -54,6 +56,7 @@ async def process_message(api, rtm, msg, loop):
         )
         loop.create_task(add_reaction(api, rtm, duplicate_requests, msg, loop))
         await loop.run_in_executor(None, save_review_requests, msg, filtered_urls)
+        uwsgi.mule_msg(MuleMessage.RELOAD)
 
 
 def parse_command(text):
