@@ -51,10 +51,10 @@ async def process_message(api, rtm, msg, loop):
         # assert iscoroutine(coro)
         # AssertionError
         # https://bugs.python.org/issue34071
-        filtered_urls, duplicate_requests = await loop.run_in_executor(
-            None, filter_duplicate_requests, gerrit_urls
+        filtered_urls, existing_requests = await loop.run_in_executor(
+            None, filter_existing_requests, gerrit_urls
         )
-        loop.create_task(add_reaction(api, rtm, duplicate_requests, msg, loop))
+        loop.create_task(add_reaction(api, rtm, existing_requests, msg, loop))
         await loop.run_in_executor(None, save_review_requests, msg, filtered_urls)
         uwsgi.mule_msg(MuleMessage.RELOAD)
 
@@ -97,20 +97,20 @@ def parse_gerrit_urls(text):
     return [url for url in slack.parse_links(text) if url.startswith(config.GERRIT_URL)]
 
 
-def filter_duplicate_requests(gerrit_urls):
-    duplicate_requests = list(ReviewRequest.objects.filter(gerrit_url__in=gerrit_urls))
-    existing_urls = {rr.gerrit_url for rr in duplicate_requests}
+def filter_existing_requests(gerrit_urls):
+    existing_requests = list(ReviewRequest.objects.filter(gerrit_url__in=gerrit_urls))
+    existing_urls = {rr.gerrit_url for rr in existing_requests}
     filtered_urls = [url for url in gerrit_urls if url not in existing_urls]
-    return filtered_urls, duplicate_requests
+    return filtered_urls, existing_requests
 
 
-async def add_reaction(api, rtm, duplicate_requests, msg, loop):
+async def add_reaction(api, rtm, existing_requests, msg, loop):
     channel_id, ts = msg["channel"], msg["ts"]
 
-    if duplicate_requests:
+    if existing_requests:
         loop.create_task(api.add_reaction(channel_id, ts, "no_entry_sign"))
         # the first will always be a duplicate, we don't have to be very detailed
-        permalink = await api.get_permalink(channel_id, duplicate_requests[0].ts)
+        permalink = await api.get_permalink(channel_id, existing_requests[0].ts)
         if permalink is not None:
             message = f"Vót má: {permalink}"
         else:
