@@ -12,7 +12,7 @@ CMD ["/app/docker-start.sh"]
 ENV PYTHONPATH=/app:/app/web:/app/lib
 ENV DJANGO_SETTINGS_MODULE=web.settings
 
-RUN apk update && apk add python3 uwsgi-python3 sqlite
+RUN apk update && apk add python3 uwsgi-python3 sqlite ca-certificates
 
 RUN pip3 install pipenv
 COPY Pipfile Pipfile.lock /app/
