@@ -103,7 +103,8 @@ class CronJob:
     async def run(self):
         await self._delete_previous_messages()
 
-        crontab_changes = await self._get_crontab_changes()
+        if self._crontab.for_review_request_only:
+            crontab_changes = await self._get_crontab_changes()
 
         rrs = ReviewRequest.objects.filter(channel_id=self._channel_id)
         rrs_and_changes = await self._get_review_request_changes(rrs)
@@ -228,7 +229,7 @@ def make_cronjobs(loop, session):
     bot_access_token = config.BOT_ACCESS_TOKEN
 
     cronjobs = []
-    for crontab in Crontab.objects.exclude(gerrit_query=""):
+    for crontab in Crontab.objects.all():
         cronjob = CronJob(gerrit_url, bot_access_token, crontab, loop, session)
         cronjobs.append((crontab, cronjob))
 

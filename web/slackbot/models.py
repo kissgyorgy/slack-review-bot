@@ -38,6 +38,11 @@ class Crontab(models.Model):
         next_dt = self._cron.get_next(dt.datetime)
         self.next = next_dt.astimezone(dt.timezone.utc)
 
+    @property
+    def for_review_request_only(self):
+        # empty gerrit_query field means, it is used only for ReviewRequests
+        return not self.gerrit_query
+
 
 class SentMessage(models.Model):
     crontab = models.ForeignKey(
