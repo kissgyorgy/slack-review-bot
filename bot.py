@@ -103,18 +103,7 @@ class CronJob:
     async def run(self):
         await self._delete_previous_messages()
 
-        if self._crontab.for_review_request_only:
-            crontab_changes = await self._get_crontab_changes()
-
-        rrs = ReviewRequest.objects.filter(channel_id=self._channel_id)
-        rrs_and_changes = await self._get_review_request_changes(rrs)
-        plus_two_rrs, remaining_changes = self._select_plus_two_rrs(rrs_and_changes)
-        ReviewRequest.objects.filter(pk__in=plus_two_rrs).delete()
-        review_request_changes = [PostableChange(c) for c in remaining_changes]
-
-        if not crontab_changes and not review_request_changes:
-            print("No changes")
-            return
+        crontab_changes = await self._get_crontab_changes()
 
         if crontab_changes:
             json_res = await self._post_to_slack(
@@ -125,8 +114,13 @@ class CronJob:
             # if we failed to send, do nothing instead of messing up the state
             if json_res is None:
                 return
-
             self._save_message(json_res)
+        else:
+            print("No crontab changes")
+
+        rrs_and_changes = await self._get_review_request_changes()
+        remaining_changes = self._delete_plus_two_rrs(rrs_and_changes)
+        review_request_changes = [PostableChange(c) for c in remaining_changes]
 
         if review_request_changes:
             json_res = await self._post_to_slack(
@@ -134,8 +128,11 @@ class CronJob:
                 config.GERRIT_URL,
                 review_request_changes,
             )
-            if json_res is not None:
-                self._save_message(json_res)
+            if json_res is None:
+                return
+            self._save_message(json_res)
+        else:
+            print("No review request changes")
 
     async def _delete_previous_messages(self):
         for sent_message in SentMessage.objects.filter(crontab=self._crontab):
@@ -143,28 +140,33 @@ class CronJob:
             await self._loop.run_in_executor(None, sent_message.delete)
 
     async def _get_crontab_changes(self):
-        crontab_query = self._crontab.gerrit_query
-        crontab_gerrit_changes = await self._gerrit.get_changes(crontab_query)
+        if self._crontab.for_review_request_only:
+            return None
+        crontab_gerrit_changes = await self._gerrit.get_changes(self._crontab.gerrit_query)
         return [PostableChange(c) for c in crontab_gerrit_changes]
 
-    async def _get_review_request_changes(self, review_requests):
+    async def _get_review_request_changes(self):
         rrs_and_changes = []
-        for rr in review_requests:
+        for rr in ReviewRequest.objects.filter(channel_id=self._channel_id):
+            # TODO: These can be awaited and returned at once at the end,
+            # don't need to wait for every request one by one
             gerrit_changes = await self._gerrit.get_changes(rr.gerrit_query)
             rrs_and_changes.append((rr, gerrit_changes))
         return rrs_and_changes
 
-    def _select_plus_two_rrs(self, rrs_and_changes):
-        plus_two_review_request_pks = []
+    def _delete_plus_two_rrs(self, rrs_and_changes):
+        plus_two_rr_pks = []
         remaining_changes = []
 
         for rr, gerrit_changes in rrs_and_changes:
             if all(c.code_review == gerrit.CodeReview.PLUS_TWO for c in gerrit_changes):
-                plus_two_review_request_pks.append(rr.pk)
+                plus_two_rr_pks.append(rr.pk)
             else:
                 remaining_changes.extend(gerrit_changes)
 
-        return plus_two_review_request_pks, remaining_changes
+        ReviewRequest.objects.filter(pk__in=plus_two_rr_pks).delete()
+
+        return remaining_changes
 
     async def _post_to_slack(self, summary_text, changes_url, changes):
         summary_link = slack.make_link(changes_url, summary_text)
