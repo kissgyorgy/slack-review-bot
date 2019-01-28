@@ -41,6 +41,10 @@ def make_attachment(color, author_name, author_link):
     return {"color": color, "author_name": author_name, "author_link": author_link}
 
 
+class ApiError(Exception):
+    """Exception in case a message for Slack failed"""
+
+
 class AsyncApi:
     def __init__(self, token, loop, session):
         self._token = token
@@ -52,17 +56,27 @@ class AsyncApi:
         self._loop = loop
         self._session = session
 
+    def _error_message(self, res, method, body, payload):
+        return (
+            f"Error {res.status} during {method} {res.method} request: {body}\n"
+            f"payload: {payload}"
+        )
+
     async def _make_json_res(self, res, method, payload):
         json_res = await res.json()
-        if 200 <= res.status < 400 and json_res["ok"]:
-            return json_res
-        else:
+        # https://api.slack.com/web#responses
+        if not (200 <= res.status < 400) or "ok" not in json_res:
+            # we couldn't even parse the response into a proper json format
             res_body = await res.text()
-            print(
-                f"Error {res.status} during {method} {res.method} request: {res_body}\n"
-                f"payload: {payload}"
-            )
-            return
+            error_message = self._error_message(res, method, res_body, payload)
+            raise ApiError(error_message)
+
+        # "ok" in json_res only mean we got a properly formatted json response,
+        # but it still could contain an error when it's value is false
+        if not json_res["ok"]:
+            print(self._error_message(res, method, json_res, payload))
+
+        return json_res
 
     async def _get(self, method, params=None):
         print("Request", method, params)
@@ -74,7 +88,7 @@ class AsyncApi:
         rv = []
         while True:
             json_res = await self._get(method, params)
-            if json_res is None:
+            if not json_res["ok"]:
                 return
             rv.extend(json_res[field])
             next_cursor = json_res.get("response_metadata", {}).get("next_cursor")
@@ -96,7 +110,7 @@ class AsyncApi:
     async def get_permalink(self, channel_id, ts):
         payload = {"channel": channel_id, "message_ts": ts}
         res = await self._get("chat.getPermalink", payload)
-        return res["permalink"] if res is not None else None
+        return res["permalink"] if res["ok"] else None
 
     async def list_all_channels(self):
         params = {"types": "public_channel,private_channel"}

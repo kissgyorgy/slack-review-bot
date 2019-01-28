@@ -65,17 +65,21 @@ class SentMessage(models.Model):
     def _delete_slack_message(self):
         print(f"Deleting message {self.ts} from channel {self.channel_id}")
         slack_api = slack.Api(config.BOT_ACCESS_TOKEN)
-        return slack_api.delete_message(self.channel_id, self.ts)
+        slack_api.delete_message(self.channel_id, self.ts)
 
     def delete(self, *args, **kwargs):
-        res_json = self._delete_slack_message()
-        if res_json is not None:
+        try:
+            self._delete_slack_message()
+        except slack.ApiError:
+            return 0, {"slackbot.SentMessage": 0}
+        else:
             return super().delete(*args, **kwargs)
-        return 0, {"slackbot.SentMessage": 0}
 
     def force_delete(self, *args, **kwargs):
-        self._delete_slack_message()
-        return super().delete(*args, **kwargs)
+        try:
+            self._delete_slack_message()
+        finally:
+            return super().delete(*args, **kwargs)
 
 
 class ReviewRequest(models.Model):

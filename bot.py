@@ -111,9 +111,6 @@ class CronJob:
                 self._crontab_changes_url,
                 crontab_changes,
             )
-            # if we failed to send, do nothing instead of messing up the state
-            if json_res is None:
-                return
             self._save_message(json_res)
         else:
             print("No crontab changes")
@@ -128,8 +125,6 @@ class CronJob:
                 config.GERRIT_URL,
                 review_request_changes,
             )
-            if json_res is None:
-                return
             self._save_message(json_res)
         else:
             print("No review request changes")

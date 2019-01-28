@@ -51,7 +51,7 @@ class CrontabCreateForm(CrontabFieldMixin, forms.ModelForm):
         else:
             slack_api = slack.Api(config.BOT_ACCESS_TOKEN)
             res = slack_api.user_info(channel_id)
-            if res is None:
+            if not res["ok"]:
                 self.add_error("channel_id", "There is no such User ID")
             else:
                 # I seriously don't understand which would be best to use
