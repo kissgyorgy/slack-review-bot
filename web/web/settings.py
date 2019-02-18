@@ -19,7 +19,7 @@ env = Env(
     SECRET_KEY=str,
     ALLOWED_HOSTS=dict(cast=list, subcast=str, default=[]),
     TIME_ZONE=dict(cast=str, default="Europe/Budapest"),
-    LANGUAGE_CODE=dict(cast=str, default="hu-hu"),
+    LANGUAGE_CODE=dict(cast=str, default="en-us"),
 )
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
