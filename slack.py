@@ -154,14 +154,28 @@ class AsyncApi:
     async def channel_info(self, channel_id):
         return await self._get("channels.info", {"channel": channel_id})
 
-    def rtm_connect(self):
-        return self._make_rtm_api("rtm.connect")
+    async def rtm_connect(self, *, retry=False):
+        return await self._make_rtm_api("rtm.connect", retry)
 
-    def rtm_start(self):
-        return self._make_rtm_api("rtm.start")
+    async def rtm_start(self, *, retry=False):
+        return await self._make_rtm_api("rtm.start", retry)
 
-    def _make_rtm_api(self, method):
-        return _RealtimeApi(self._get(method), self._session.ws_connect, self._loop)
+    async def _make_rtm_api(self, method, retry):
+        while True:
+            res = await self._get(method)
+            if res["ok"]:
+                break
+
+            message = f"Couldn't connect to RTM api: {res['error']}"
+            if retry:
+                print(message + ", trying again...")
+                await asyncio.sleep(5)
+            else:
+                raise ApiError(message)
+
+        print("Connected to RTM api:", res)
+        ws = await self._session.ws_connect(res["url"])
+        return _RealtimeApi(res["self"]["id"], ws)
 
 
 class MsgType:
@@ -179,23 +193,13 @@ class MsgSubType:
 
 
 class _RealtimeApi:
-    def __init__(self, get_coro, ws_connect, loop):
-        self._get_coro = get_coro
-        self._ws_connect = ws_connect
-        self._loop = loop
-
-    async def __aenter__(self):
-        self._res = await self._get_coro
-        print("Connected to RTM api:", self._res)
-        self._ws = await self._ws_connect(self._res["url"])
-        return self
-
-    async def __aexit__(self, exc_type, exc, tb):
-        await self.close()
+    def __init__(self, bot_id, ws):
+        self._bot_id = bot_id
+        self._ws = ws
 
     @property
     def bot_id(self):
-        return self._res["self"]["id"]
+        return self._bot_id
 
     @property
     def bot_mention(self):

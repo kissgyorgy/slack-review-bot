@@ -139,25 +139,15 @@ def save_review_requests(msg, gerrit_urls):
     print(f"Saved {len(objs)} review requests.")
 
 
-def connect_with_retry(api):
-    while True:
-        try:
-            return api.rtm_connect()
-        except Exception as e:
-            print("Could not connect to RTM api, trying again...", e)
-            time.sleep(3)
-
-
 async def wait_messages(rtm, api, loop):
-    async with rtm:
-        if not await rtm.got_hello():
-            _count_down(10)
-            return
+    if not await rtm.got_hello():
+        _count_down(10)
+        return
 
-        print("Got hello")
+    print("Got hello")
 
-        async for msg in rtm.wait_messages():
-            loop.create_task(process_message(api, rtm, msg, loop))
+    async for msg in rtm.wait_messages():
+        loop.create_task(process_message(api, rtm, msg, loop))
 
 
 def _count_down(from_sec):
@@ -179,7 +169,7 @@ def main():
     session = aiohttp.ClientSession(loop=loop)
     api = slack.AsyncApi(config.BOT_ACCESS_TOKEN, session)
 
-    rtm = connect_with_retry(api)
+    rtm = loop.run_until_complete(api.rtm_connect(retry=True))
 
     try:
         # run_until_complete instead of run_forever, because
