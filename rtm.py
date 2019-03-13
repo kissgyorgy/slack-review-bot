@@ -1,8 +1,10 @@
+import sys
 import time
 import enum
 import json
 import random
 import atexit
+import signal
 import asyncio
 from pprint import pprint
 import functools
@@ -162,12 +164,22 @@ def _count_down(from_sec):
     print("0.", flush=True)
 
 
+def handle_quit_signals():
+    print(f"Got SIGINT/SIGQUIT, quitting...", flush=True)
+    loop = asyncio.get_event_loop()
+    loop.stop()
+    sys.exit(1)
+
+
 def main():
     django.setup()
 
     loop = asyncio.get_event_loop()
     session = aiohttp.ClientSession(loop=loop)
     api = slack.AsyncApi(config.BOT_ACCESS_TOKEN, session)
+
+    for sig in (signal.SIGINT, signal.SIGQUIT):
+        loop.add_signal_handler(sig, handle_quit_signals)
 
     rtm = loop.run_until_complete(api.rtm_connect(retry=True))
 
