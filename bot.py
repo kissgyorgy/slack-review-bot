@@ -1,8 +1,6 @@
 #!/usr/bin/env python3.6
 
-import time
 import json
-import atexit
 import asyncio
 import textwrap
 import datetime as dt
@@ -88,7 +86,7 @@ class CronJob:
     def __init__(self, gerrit_url, bot_access_token, crontab, loop, session):
         self._loop = loop
         self._gerrit = gerrit.AsyncApi(gerrit_url, session)
-        self._slack = slack.AsyncApi(bot_access_token, self._loop, session)
+        self._slack = slack.AsyncApi(bot_access_token, session)
 
         self._crontab = crontab
         self._channel_id = crontab.channel_id

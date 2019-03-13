@@ -177,7 +177,7 @@ def main():
 
     loop = asyncio.get_event_loop()
     session = aiohttp.ClientSession(loop=loop)
-    api = slack.AsyncApi(config.BOT_ACCESS_TOKEN, loop, session)
+    api = slack.AsyncApi(config.BOT_ACCESS_TOKEN, session)
 
     rtm = connect_with_retry(api)
 
