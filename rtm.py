@@ -16,7 +16,7 @@ import gerrit
 import slack
 from slack import MsgType, MsgSubType
 from slackbot.models import Crontab, SentMessage, ReviewRequest
-from bot import MuleMessage
+from bot import MuleMessage, wait_for_setup
 
 
 class BotCommand(enum.Enum):
@@ -173,6 +173,7 @@ def handle_quit_signals():
 
 def main():
     django.setup()
+    wait_for_setup()
 
     loop = asyncio.get_event_loop()
     session = aiohttp.ClientSession(loop=loop)

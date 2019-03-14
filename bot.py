@@ -1,6 +1,7 @@
 #!/usr/bin/env python3.6
 
 import json
+import time
 import asyncio
 import textwrap
 import datetime as dt
@@ -8,6 +9,7 @@ import threading
 import aiohttp
 from concurrent.futures import ThreadPoolExecutor
 import uwsgi
+from django.conf import settings
 from constance import config
 import slack
 import gerrit
@@ -263,10 +265,26 @@ async def run_crontabs(loop, session):
         await asyncio.sleep(3)
 
 
+def wait_for_setup():
+    while config.BOT_ACCESS_TOKEN == settings.BOT_ACCESS_TOKEN_DEFAULT:
+        time.sleep(5)
+
+
 def main():
     print("Started main")
 
     django.setup()
+
+    if config.BOT_ACCESS_TOKEN == settings.BOT_ACCESS_TOKEN_DEFAULT:
+        print(
+            """
+You have to configure the bot first by visiting the admin interface
+Constance Config page, probably on something like:
+https://<this-machine-ip>/admin/constance/config/
+"""
+        )
+    wait_for_setup()
+
     print(Crontab.objects.all())
     WaitForMessages().start()
 
