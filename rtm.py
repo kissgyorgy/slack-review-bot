@@ -189,6 +189,7 @@ def main():
         # uwsgi can restart it if crashes
         loop.run_until_complete(wait_messages(rtm, api, loop))
     finally:
+        loop.run_until_complete(rtm.close())
         loop.run_until_complete(session.close())
 
 

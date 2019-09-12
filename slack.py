@@ -224,6 +224,9 @@ class _RealtimeApi:
                 break
 
     async def close(self):
+        # already closed
+        if self._ws is None:
+            return
         await self._ws.close()
         self._ws = None
 
