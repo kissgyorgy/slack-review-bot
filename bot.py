@@ -113,7 +113,9 @@ class CronJob:
     async def _handle_crontab(self):
         if self._crontab.for_review_request_only:
             return
-        crontab_gerrit_changes = await self._gerrit.get_changes(self._crontab.gerrit_query)
+        crontab_gerrit_changes = await self._gerrit.get_changes(
+            self._crontab.gerrit_query
+        )
         crontab_changes = [PostableChange(c) for c in crontab_gerrit_changes]
 
         if not crontab_changes:

@@ -89,5 +89,5 @@ if uwsgi:
 
 else:
     from django.core.cache.backends.locmem import (
-        LocMemCache as UWSGICache
+        LocMemCache as UWSGICache,
     )  # flake8: noqa
