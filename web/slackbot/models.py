@@ -11,6 +11,7 @@ class Crontab(models.Model):
     channel_name = models.CharField(max_length=100, blank=True)
     channel_id = models.CharField(
         max_length=30,
+        blank=True,
         help_text="Slack internal channel ID, will be "
         "automatically set based on channel_name",
     )
