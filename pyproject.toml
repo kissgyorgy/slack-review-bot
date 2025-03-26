@@ -10,7 +10,7 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = ">= 3.6"
-django = "2.1.5"
+django = "4.2.16"
 django-constance = {version = "^2.3",extras = ["database"]}
 django-crispy-forms = "*"
 django-widget-tweaks = "*"
